@@ -15,7 +15,12 @@
   (test-begin "gemini-server-unit-tests")
   
   ;; Load and run all test modules
-  ;; Will be populated as we create tests
+  (use-modules (tests protocol-parser)
+               (tests cli-args)
+               (tests mime-types)
+               (tests file-handler)
+               (tests tls-config)
+               (tests integration))
   
   (test-end "gemini-server-unit-tests")
   (display "Unit tests complete.\n"))

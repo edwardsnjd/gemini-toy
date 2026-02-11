@@ -5,7 +5,7 @@
 ;;; Main entry point and socket handling
 
 (define-module (gemini server)
-  #:use-module (ice-9 networking)
+  ;; Note: socket functions available as built-ins
   #:use-module (gnutls)
   #:use-module (ice-9 textual-ports)
   #:use-module (ice-9 getopt-long)
@@ -113,7 +113,7 @@
              (display "Warning: Running on privileged port, may require root privileges\n")
              (start-server parsed-args))
             (else
-              (start-server parsed-args)))))))
+              (start-server parsed-args))))))))
 
 ;;; Process a single Gemini request
 (define (process-request request-line static-dir)
@@ -261,11 +261,11 @@
                           (log-message "ERROR" "TLS error with client ~a: ~a ~a" client-addr key args)
                           (close client-socket)))
                       
-                      ;; Continue accepting new connections
-                      (loop))))))))
+                       ;; Continue accepting new connections
+                       (loop))))))))))) 
     (lambda (key . args)
       (log-message "FATAL" "Server error: ~a ~a" key args)
-      (exit 1))))
+      (exit 1))
 
 ;;; When run as script
 (when (batch-mode?)

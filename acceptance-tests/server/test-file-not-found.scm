@@ -3,7 +3,7 @@
 
 (define-module (acceptance-tests file-not-found)
   #:use-module (srfi srfi-64)
-  #:use-module (ice-9 networking)
+  ;; Note: socket functions available as built-ins
   #:use-module (gnutls)
   #:use-module (ice-9 textual-ports))
 

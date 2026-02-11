@@ -5,7 +5,7 @@
 ;;; Runs black-box tests against running server
 
 (use-modules (srfi srfi-64)    ; Testing framework
-             (ice-9 networking) ; For network connections
+             ;; Note: socket functions available as built-ins
              (gnutls))         ; For TLS connections
 
 ;;; Configuration
