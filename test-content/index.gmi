@@ -1,8 +1,18 @@
-# Test Gemini Site
+# Gemini Test Server
 
-Welcome to the test site!
+This is a test server for demonstrating Gemini protocol error handling.
 
-=> /test.gmi Test Gemini document  
-=> /test.txt Test text file
+## Test Links
 
-This index should be served when accessing the root path.
+=> /test.gmi Test Page
+=> /missing.gmi Missing Page (should return 51)
+=> /subdir/ Subdirectory
+
+## Testing Commands
+
+To test this server, use commands like:
+
+```
+echo 'gemini://localhost:1966/' | openssl s_client -connect localhost:1966 -servername localhost -quiet
+```
+

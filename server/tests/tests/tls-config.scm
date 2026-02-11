@@ -1,10 +1,9 @@
 ;;; Unit Tests: TLS Configuration
 ;;; Tests for certificate handling and TLS setup
 
-(add-to-load-path "../src")
-
 (define-module (tests tls-config)
   #:use-module (srfi srfi-64)
+  #:use-module (ice-9 textual-ports)  ; For get-string-all
   #:use-module (gemini tls-config)
   #:use-module (ice-9 ftw))
 

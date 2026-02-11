@@ -1,0 +1,24 @@
+# Alternative Gemini Extension Test
+
+This file uses the .gemini extension instead of .gmi to test that both extensions are properly recognized and served with the correct MIME type.
+
+## Purpose
+
+Some Gemini servers and clients recognize both:
+* .gmi (more common)
+* .gemini (alternative)
+
+Both should be served as text/gemini content type.
+
+## Sample Content
+
+=> /test.gmi Compare with .gmi version
+=> /index.gmi Return to homepage
+
+```code
+function testGeminiExtension() {
+    console.log("Both .gmi and .gemini should work!");
+}
+```
+
+This file helps verify that the server correctly handles multiple Gemini file extensions.

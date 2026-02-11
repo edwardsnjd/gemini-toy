@@ -1,10 +1,9 @@
 ;;; Unit Tests: File Handler
 ;;; Tests for file system operations and security
 
-(add-to-load-path "../src")
-
 (define-module (tests file-handler)
   #:use-module (srfi srfi-64)
+  #:use-module (rnrs bytevectors)  ; For bytevector?
   #:use-module (gemini file-handler))
 
 ;;; Test suite for path resolution

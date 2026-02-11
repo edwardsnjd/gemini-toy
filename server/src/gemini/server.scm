@@ -12,14 +12,16 @@
   #:use-module (ice-9 threads)
   #:use-module (ice-9 format)
   #:use-module (srfi srfi-19) ; Time/date formatting
+  #:use-module (web uri)
   #:use-module (gemini protocol)
   #:use-module (gemini file-handler)
   #:use-module (gemini tls-config)
+  #:use-module (gemini mime-types)
   #:export (main parse-cli-args validate-cli-args process-request server-loop log-message))
 
 ;;; Logging utility
 (define (log-message level message . args)
-  (let ((timestamp (strftime "%Y-%m-%d %H:%M:%S" (localtime (current-time))))
+  (let ((timestamp (strftime "%Y-%m-%d %H:%M:%S" (localtime (time-second (current-time time-utc)))))
         (formatted-msg (apply format #f message args)))
     (display (format #f "[~a] ~a: ~a\n" timestamp level formatted-msg))
     (force-output)))
@@ -139,7 +141,7 @@
                             ;; Step 5: Read file and determine MIME type
                             (catch #t
                               (lambda ()
-                                (let ((content (read-static-file file-path)))
+                                (let ((content (read-file-content file-path)))
                                   (if content
                                       (let ((mime-type (get-mime-type file-path)))
                                         (format-gemini-response 20 mime-type content))
@@ -186,7 +188,7 @@
   (catch #t
     (lambda ()
       ;; Read request from client (up to 1024 bytes)
-      (let ((request (read-line client-session)))
+      (let ((request (get-line client-session)))
         (if (eof-object? request)
             (begin
               (log-message "INFO" "Client ~a disconnected without sending request" client-addr)
@@ -234,7 +236,7 @@
                 (let ((client-connection (accept server-socket)))
                   (let ((client-socket (car client-connection))
                         (client-address (cdr client-connection)))
-                    (let ((client-addr (inet-ntoa (sockaddr:addr client-address))))
+                    (let ((client-addr "unknown"))
                       (log-message "INFO" "Client connected from ~a" client-addr)
                       
                       ;; Set up TLS session for this client

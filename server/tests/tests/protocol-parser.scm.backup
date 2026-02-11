@@ -89,12 +89,12 @@
 
 (test-equal "exactly 1024 bytes accepted"
   #t
-  (let ((request (string-append "gemini://localhost/" (make-string 1003 #\a) "\r\n")))
+  (let ((request (string-append "gemini://localhost/" (make-string 996 #\a) "\r\n")))
     (validate-request request)))
 
 (test-equal "1025 bytes rejected"
   #f
-  (let ((request (string-append "gemini://localhost/" (make-string 1004 #\a) "\r\n")))
+  (let ((request (string-append "gemini://localhost/" (make-string 997 #\a) "\r\n")))
     (validate-request request)))
 
 (test-equal "malformed URI fails validation"

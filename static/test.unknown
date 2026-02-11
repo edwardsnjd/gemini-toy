@@ -1,0 +1,14 @@
+This file has an unknown extension (.unknown) for testing MIME type detection.
+
+The server should either:
+1. Serve it with a default MIME type (like application/octet-stream)
+2. Attempt to detect content type based on content
+3. Use a fallback text/plain type
+
+This content is plain text, but the extension is not recognized,
+which tests how the server handles unknown file types.
+
+Some servers may examine the file content to determine the appropriate
+MIME type, while others rely solely on file extensions.
+
+Testing unknown file type handling...

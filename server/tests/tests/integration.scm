@@ -1,8 +1,6 @@
 ;;; Integration Tests: Request Processing Pipeline
 ;;; Tests for end-to-end request processing
 
-(add-to-load-path "../src")
-
 (define-module (tests integration)
   #:use-module (srfi srfi-64)
   #:use-module (gemini server)

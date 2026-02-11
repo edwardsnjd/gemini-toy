@@ -1,7 +1,5 @@
-# Test Gemini Document
+# Test Page
 
-This is a test gemini document.
+This page exists and should return status 20.
 
-=> /test.txt Link to test text file
-
-It should be served with MIME type text/gemini.
+=> / Back to Index

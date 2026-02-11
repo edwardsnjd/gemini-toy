@@ -61,18 +61,18 @@
 
 ## 8. End-to-End Verification
 
-- [ ] 8.1 Run all acceptance tests against implemented server
-- [ ] 8.2 Run all unit tests to verify component correctness  
-- [ ] 8.3 Test with sample static content (create test .gmi files)
-- [ ] 8.4 Verify TLS certificate handling works correctly
-- [ ] 8.5 Test error conditions manually (malformed requests, missing files)
+- [x] 8.1 Run all acceptance tests against implemented server
+- [x] 8.2 Run all unit tests to verify component correctness  
+- [x] 8.3 Test with sample static content (create test .gmi files)
+- [x] 8.4 Verify TLS certificate handling works correctly
+- [x] 8.5 Test error conditions manually (malformed requests, missing files)
 
 ## 9. Documentation and Examples
 
-- [ ] 9.1 Create example static content with .gmi files
-- [ ] 9.2 Write basic usage instructions in server README
-- [ ] 9.3 Document test running procedures
-- [ ] 9.4 Add code comments explaining Gemini protocol implementation choices
+- [x] 9.1 Create example static content with .gmi files
+- [x] 9.2 Write basic usage instructions in server README
+- [x] 9.3 Document test running procedures
+- [x] 9.4 Add code comments explaining Gemini protocol implementation choices
 
 ---
 

@@ -1,8 +1,6 @@
 ;;; Unit Tests: MIME Types
 ;;; Tests for file extension detection and MIME type mapping
 
-(add-to-load-path "../src")
-
 (define-module (tests mime-types)
   #:use-module (srfi srfi-64)
   #:use-module (gemini mime-types))

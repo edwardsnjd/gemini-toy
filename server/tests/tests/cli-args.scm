@@ -1,8 +1,6 @@
 ;;; Unit Tests: Command Line Argument Parsing
 ;;; Tests for CLI argument handling and validation
 
-(add-to-load-path "../src")
-
 (define-module (tests cli-args)
   #:use-module (srfi srfi-64)
   #:use-module (gemini server))
