@@ -46,8 +46,11 @@
   (and 
     ;; Check length limit (1024 bytes as per spec)
     (<= (string-length request-line) 1024)
+    ;; Check that request is not empty or whitespace-only
+    (not (string-null? (string-trim request-line)))
     ;; Check that it ends with CRLF or LF
     (or (string-suffix? "\r\n" request-line)
         (string-suffix? "\n" request-line))
-    ;; Check that URI can be parsed
-    (parse-gemini-request request-line)))
+    ;; Check that URI can be parsed successfully
+    (let ((uri (parse-gemini-request request-line)))
+      (and uri #t))))

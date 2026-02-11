@@ -68,12 +68,12 @@
 
 (test-equal "valid request passes validation"
   #t
-  (validate-request "gemini://localhost/test.txt"))
+  (validate-request "gemini://localhost/test.txt\r\n"))
 
 (test-equal "request too long rejected" 
   #f
   (let ((long-request (string-append "gemini://localhost/"
-                                    (make-string 1000 #\x))))
+                                    (make-string 1000 #\x) "\r\n")))
     (validate-request long-request)))
 
 (test-equal "request without CRLF rejected"
@@ -87,6 +87,40 @@
 (test-equal "request with just LF accepted"
   #t  
   (validate-request "gemini://localhost/test.txt\n"))
+
+(test-equal "exactly 1024 bytes accepted"
+  #t
+  (let ((request (string-append "gemini://localhost/" (make-string 996 #\a) "\r\n")))
+    (validate-request request)))
+
+(test-equal "1025 bytes rejected"
+  #f
+  (let ((request (string-append "gemini://localhost/" (make-string 997 #\a) "\r\n")))
+    (validate-request request)))
+
+(test-equal "malformed URI fails validation"
+  #f
+  (validate-request "not-a-uri\r\n"))
+
+(test-equal "non-gemini scheme fails validation"
+  #f
+  (validate-request "http://localhost/test.txt\r\n"))
+
+(test-equal "URI with userinfo fails validation"
+  #f
+  (validate-request "gemini://user:pass@localhost/test.txt\r\n"))
+
+(test-equal "URI with fragment fails validation"
+  #f
+  (validate-request "gemini://localhost/test.txt#fragment\r\n"))
+
+(test-equal "empty request fails validation"
+  #f
+  (validate-request ""))
+
+(test-equal "whitespace-only request fails validation"
+  #f
+  (validate-request "   \r\n"))
 
 (test-end "request-validation")
 

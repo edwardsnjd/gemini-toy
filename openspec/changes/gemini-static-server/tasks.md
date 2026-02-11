@@ -21,8 +21,8 @@
 - [x] 3.2 Implement URI parsing (validate scheme, extract path, handle malformed URIs)
 - [x] 3.3 Write unit tests for response formatting  
 - [x] 3.4 Implement response formatting (status codes, meta fields, proper CRLF)
-- [ ] 3.5 Write unit tests for request validation
-- [ ] 3.6 Implement request validation (length limits, format checking)
+- [x] 3.5 Write unit tests for request validation
+- [x] 3.6 Implement request validation (length limits, format checking)
 
 ## 4. MIME Type Module (Unit Tests + Implementation)
 
@@ -44,20 +44,20 @@
 
 ## 6. TLS Configuration Module (Unit Tests + Implementation)
 
-- [ ] 6.1 Write unit tests for certificate validation and loading
-- [ ] 6.2 Implement certificate file reading and validation
-- [ ] 6.3 Write unit tests for TLS context setup
-- [ ] 6.4 Implement GnuTLS context configuration
-- [ ] 6.5 Create self-signed certificate generation for development
+- [x] 6.1 Write unit tests for certificate validation and loading
+- [x] 6.2 Implement certificate file reading and validation
+- [x] 6.3 Write unit tests for TLS context setup
+- [x] 6.4 Implement GnuTLS context configuration
+- [x] 6.5 Create self-signed certificate generation for development
 
 ## 7. Main Server Integration (Unit Tests + Implementation)
 
-- [ ] 7.1 Write unit tests for command-line argument parsing
-- [ ] 7.2 Implement CLI argument handling and validation
-- [ ] 7.3 Write integration tests for request processing pipeline
-- [ ] 7.4 Implement main request processing loop
-- [ ] 7.5 Implement TLS socket handling and connection management
-- [ ] 7.6 Add proper error handling and logging
+- [x] 7.1 Write unit tests for command-line argument parsing
+- [x] 7.2 Implement CLI argument handling and validation
+- [x] 7.3 Write integration tests for request processing pipeline
+- [x] 7.4 Implement main request processing loop
+- [x] 7.5 Implement TLS socket handling and connection management
+- [x] 7.6 Add proper error handling and logging
 
 ## 8. End-to-End Verification
 
