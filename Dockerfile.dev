@@ -1,0 +1,21 @@
+FROM ubuntu:26.04
+
+RUN apt-get update \
+ && DEBIAN_FRONTEND=noninteractive \
+  apt-get upgrade --yes \
+ && DEBIAN_FRONTEND=noninteractive \
+  apt-get install --yes \
+   curl \
+   git \
+   xz-utils \
+   nodejs \
+   npm \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN npm install -g @fission-ai/openspec@latest
+
+RUN npm install -g opencode-ai
+
+WORKDIR /usr/local
+RUN curl --location --silent "https://github.com/npryce/adr-tools/archive/refs/tags/3.0.0.tar.gz" | tar -xz
+ENV PATH="/usr/local/adr-tools-3.0.0/src:${PATH}"
