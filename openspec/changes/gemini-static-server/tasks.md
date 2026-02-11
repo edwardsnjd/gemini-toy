@@ -3,17 +3,17 @@
 ## 1. Project Structure Setup
 
 - [x] 1.1 Create server directory structure (`server/src/`, `server/tests/`, `server/certs/`)
-- [ ] 1.2 Create acceptance tests directory structure (`acceptance-tests/server/`)
-- [ ] 1.3 Set up basic Guile module files with proper headers
-- [ ] 1.4 Create test runner scripts for both unit and acceptance tests
+- [x] 1.2 Create acceptance tests directory structure (`acceptance-tests/server/`)
+- [x] 1.3 Set up basic Guile module files with proper headers
+- [x] 1.4 Create test runner scripts for both unit and acceptance tests
 
 ## 2. Acceptance Tests (Black-box, Protocol-level)
 
-- [ ] 2.1 Write acceptance test for basic file serving over TLS
-- [ ] 2.2 Write acceptance test for directory index handling  
-- [ ] 2.3 Write acceptance test for file not found (404) responses
-- [ ] 2.4 Write acceptance test for malformed request handling
-- [ ] 2.5 Write acceptance test for MIME type correctness (.gmi, .txt, .png)
+- [x] 2.1 Write acceptance test for basic file serving over TLS
+- [x] 2.2 Write acceptance test for directory index handling  
+- [x] 2.3 Write acceptance test for file not found (404) responses
+- [x] 2.4 Write acceptance test for malformed request handling
+- [x] 2.5 Write acceptance test for MIME type correctness (.gmi, .txt, .png)
 
 ## 3. Core Protocol Module (Unit Tests + Implementation)
 

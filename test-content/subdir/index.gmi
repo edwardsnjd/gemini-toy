@@ -1,0 +1,5 @@
+# Subdirectory Index
+
+This is an index file in a subdirectory.
+
+=> /test.gmi Back to main test page

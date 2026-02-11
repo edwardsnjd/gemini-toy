@@ -1,0 +1,7 @@
+# Test Gemini Document
+
+This is a test gemini document.
+
+=> /test.txt Link to test text file
+
+It should be served with MIME type text/gemini.

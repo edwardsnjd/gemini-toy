@@ -1,0 +1,2 @@
+This is a test text file for the Gemini server.
+It should be served with MIME type text/plain.

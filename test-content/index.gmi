@@ -1,0 +1,8 @@
+# Test Gemini Site
+
+Welcome to the test site!
+
+=> /test.gmi Test Gemini document  
+=> /test.txt Test text file
+
+This index should be served when accessing the root path.
