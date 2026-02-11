@@ -17,30 +17,30 @@
 
 ## 3. Core Protocol Module (Unit Tests + Implementation)
 
-- [ ] 3.1 Write unit tests for URI parsing function
-- [ ] 3.2 Implement URI parsing (validate scheme, extract path, handle malformed URIs)
-- [ ] 3.3 Write unit tests for response formatting  
-- [ ] 3.4 Implement response formatting (status codes, meta fields, proper CRLF)
+- [x] 3.1 Write unit tests for URI parsing function
+- [x] 3.2 Implement URI parsing (validate scheme, extract path, handle malformed URIs)
+- [x] 3.3 Write unit tests for response formatting  
+- [x] 3.4 Implement response formatting (status codes, meta fields, proper CRLF)
 - [ ] 3.5 Write unit tests for request validation
 - [ ] 3.6 Implement request validation (length limits, format checking)
 
 ## 4. MIME Type Module (Unit Tests + Implementation)
 
-- [ ] 4.1 Write unit tests for file extension detection
-- [ ] 4.2 Implement file extension parsing from file paths
-- [ ] 4.3 Write unit tests for MIME type mapping
-- [ ] 4.4 Implement MIME type database (.gmi → text/gemini, .txt → text/plain, etc.)
-- [ ] 4.5 Write unit tests for charset handling
-- [ ] 4.6 Implement charset defaults for text types
+- [x] 4.1 Write unit tests for file extension detection
+- [x] 4.2 Implement file extension parsing from file paths
+- [x] 4.3 Write unit tests for MIME type mapping
+- [x] 4.4 Implement MIME type database (.gmi → text/gemini, .txt → text/plain, etc.)
+- [x] 4.5 Write unit tests for charset handling
+- [x] 4.6 Implement charset defaults for text types
 
 ## 5. File Handler Module (Unit Tests + Implementation)
 
-- [ ] 5.1 Write unit tests for path resolution and validation
-- [ ] 5.2 Implement safe path resolution (prevent directory traversal)
-- [ ] 5.3 Write unit tests for directory index file detection  
-- [ ] 5.4 Implement index file lookup (index.gmi, index.gemini)
-- [ ] 5.5 Write unit tests for file reading and error conditions
-- [ ] 5.6 Implement file reading with proper error handling
+- [x] 5.1 Write unit tests for path resolution and validation
+- [x] 5.2 Implement safe path resolution (prevent directory traversal)
+- [x] 5.3 Write unit tests for directory index file detection
+- [x] 5.4 Implement index file lookup (index.gmi, index.gemini)
+- [x] 5.5 Write unit tests for file reading and error conditions
+- [x] 5.6 Implement file reading with proper error handling
 
 ## 6. TLS Configuration Module (Unit Tests + Implementation)
 

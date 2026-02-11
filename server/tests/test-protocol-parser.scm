@@ -1,0 +1,122 @@
+;;; Unit Tests: Protocol Parser
+;;; Tests for Gemini protocol request parsing and response formatting
+
+(add-to-load-path "../src")
+
+(define-module (tests protocol-parser)
+  #:use-module (srfi srfi-64)
+  #:use-module (gemini protocol))
+
+;;; Test suite for URI parsing
+(test-begin "uri-parsing")
+
+(test-equal "valid gemini URI parsing"
+  "/test.txt"
+  (let ((uri (parse-gemini-request "gemini://localhost:1965/test.txt")))
+    (if uri (uri-path uri) #f)))
+
+(test-equal "gemini URI with default port"
+  "/index.gmi" 
+  (let ((uri (parse-gemini-request "gemini://example.com/index.gmi")))
+    (if uri (uri-path uri) #f)))
+
+(test-equal "gemini URI with explicit port"
+  "/docs/page.gmi"
+  (let ((uri (parse-gemini-request "gemini://server.example.com:1965/docs/page.gmi")))
+    (if uri (uri-path uri) #f)))
+
+(test-equal "gemini URI with query string"
+  "/search?query=test"
+  (let ((uri (parse-gemini-request "gemini://localhost/search?query=test")))
+    (if uri (string-append (uri-path uri) "?" (uri-query uri)) #f)))
+
+(test-equal "root path handling"
+  "/"
+  (let ((uri (parse-gemini-request "gemini://localhost/")))
+    (if uri (uri-path uri) #f)))
+
+(test-equal "empty path becomes root"
+  "/"
+  (let ((uri (parse-gemini-request "gemini://localhost")))
+    (if uri (uri-path uri) #f)))
+
+;;; Invalid URI tests
+(test-equal "non-gemini scheme rejected"
+  #f
+  (parse-gemini-request "http://localhost/test.txt"))
+
+(test-equal "URI with userinfo rejected"
+  #f  
+  (parse-gemini-request "gemini://user:pass@localhost/test.txt"))
+
+(test-equal "URI with fragment rejected"
+  #f
+  (parse-gemini-request "gemini://localhost/test.txt#fragment"))
+
+(test-equal "malformed URI rejected"
+  #f
+  (parse-gemini-request "not-a-uri"))
+
+(test-equal "empty string rejected"
+  #f
+  (parse-gemini-request ""))
+
+(test-end "uri-parsing")
+
+;;; Test suite for request validation  
+(test-begin "request-validation")
+
+(test-equal "valid request passes validation"
+  #t
+  (validate-request "gemini://localhost/test.txt"))
+
+(test-equal "request too long rejected" 
+  #f
+  (let ((long-request (string-append "gemini://localhost/"
+                                    (make-string 1000 #\x))))
+    (validate-request long-request)))
+
+(test-equal "request without CRLF rejected"
+  #f
+  (validate-request "gemini://localhost/test.txt"))  ; No \r\n
+
+(test-equal "request with CRLF accepted"
+  #t
+  (validate-request "gemini://localhost/test.txt\r\n"))
+
+(test-equal "request with just LF accepted"
+  #t  
+  (validate-request "gemini://localhost/test.txt\n"))
+
+(test-end "request-validation")
+
+;;; Test suite for response formatting
+(test-begin "response-formatting")
+
+(test-equal "success response format"
+  "20 text/gemini; charset=utf-8\r\n"
+  (format-gemini-response 20 "text/gemini; charset=utf-8" #f))
+
+(test-equal "error response format"  
+  "51 Not Found\r\n"
+  (format-gemini-response 51 "Not Found" #f))
+
+(test-equal "success response with body"
+  "20 text/plain\r\nHello, world!"
+  (format-gemini-response 20 "text/plain" "Hello, world!"))
+
+(test-equal "redirect response format"
+  "30 gemini://new-location/\r\n"
+  (format-gemini-response 30 "gemini://new-location/" #f))
+
+(test-equal "bad request response format"
+  "59 Bad Request\r\n"
+  (format-gemini-response 59 "Bad Request" #f))
+
+(test-end "response-formatting")
+
+;;; Export for test runner
+(define (run-protocol-parser-tests)
+  (display "Running protocol parser tests...\n")
+  ;; Tests run when module is loaded
+  )
