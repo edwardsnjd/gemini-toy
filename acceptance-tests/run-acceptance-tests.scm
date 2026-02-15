@@ -4,9 +4,13 @@
 ;;; Acceptance Test Runner
 ;;; Runs black-box tests against running server
 
+;; Add lib directory to load path for shared utilities
+(add-to-load-path (string-append (dirname (current-filename)) "/lib"))
+
 (use-modules (srfi srfi-64)    ; Testing framework
              ;; Note: socket functions available as built-ins
-             (gnutls))         ; For TLS connections
+             (gnutls)          ; For TLS connections
+             (gemini-test-utils)) ; Our shared test utilities
 
 ;;; Configuration
 (define test-server-host "localhost")
