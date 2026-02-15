@@ -39,22 +39,51 @@ On macOS with Homebrew:
 brew install guile gnutls openssl
 ```
 
+### Quick Start Scripts
+
+For convenience, use these scripts to run common tasks:
+
+```bash
+# Show all available commands
+./help.sh
+
+# Start the server (easiest way)
+./start-server.sh
+
+# Run all tests
+./run-all-tests.sh
+
+# Quick development test
+./test-quick.sh
+
+# Unit tests only
+./run-unit-tests.sh
+
+# Acceptance tests only  
+./run-acceptance-tests.sh
+```
+
 ### Running the Server
 
 1. **Start with default settings:**
    ```bash
-   cd server/src/gemini/
-   guile server.scm
+   ./start-server.sh
    ```
 
 2. **Start with custom options:**
    ```bash
-   guile server.scm -p 1966 -d ../../static -c certs/mycert.pem -k certs/mykey.pem
+   ./start-server.sh -p 1966 -d static --verbose
    ```
 
-3. **View available options:**
+3. **Manual start (advanced):**
    ```bash
-   guile server.scm --help
+   cd server
+   GUILE_LOAD_PATH=src guile src/gemini/server.scm -d ../static
+   ```
+
+4. **View available options:**
+   ```bash
+   ./start-server.sh --help
    ```
 
 ## Command Line Options
@@ -70,17 +99,41 @@ brew install guile gnutls openssl
 
 ## Usage Examples
 
+### Testing
+
+The project includes comprehensive tests with convenient scripts:
+
+```bash
+# Complete test suite (recommended)
+./run-all-tests.sh
+
+# Quick smoke test during development
+./test-quick.sh
+
+# Unit tests only (fast)
+./run-unit-tests.sh
+
+# Acceptance/integration tests only
+./run-acceptance-tests.sh
+```
+
+**Test Coverage:**
+- ✅ **Unit Tests**: 28 tests covering protocol parsing, validation, MIME types, file handling
+- ✅ **Acceptance Tests**: Black-box testing with real TLS connections
+- ✅ **Security Tests**: Path traversal prevention, request validation, error handling
+- ✅ **Protocol Compliance**: Full Gemini specification compliance verification
+
 ### Basic Usage
 
 ```bash
 # Start server on default port 1965
-guile server.scm
+./start-server.sh
 
 # Start on port 1966
-guile server.scm --port 1966
+./start-server.sh --port 1966
 
 # Serve files from custom directory
-guile server.scm --static-dir /path/to/my/content
+./start-server.sh --dir /path/to/my/content
 ```
 
 ### TLS Certificate Management
