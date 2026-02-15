@@ -35,20 +35,16 @@
     ("tar"    . "application/x-tar")
     ("gz"     . "application/gzip")))
 
+;;; Extract file extension from filename
+(define (get-file-extension file-path)
+  (let* ((name (basename file-path))
+         (dot-pos (string-rindex name #\.)))
+    (if (and dot-pos (< 0 dot-pos (- (string-length name) 1)))
+        (substring name (+ dot-pos 1))
+        "")))
+
 ;;; Get MIME type for a file path using extension mapping
 (define (get-mime-type file-path)
-  (let* ((extension (string-downcase (get-file-extension file-path)))
-         (mime-entry (assoc extension mime-type-table)))
-    (if mime-entry
-        (cdr mime-entry)
-        "application/octet-stream")))
-
-;;; Extract file extension from path
-(define (get-file-extension file-path)
-  (let* ((basename (basename file-path))
-         (dot-pos (string-rindex basename #\.)))
-    (if (and dot-pos 
-             (> dot-pos 0)
-             (< dot-pos (- (string-length basename) 1)))
-        (substring basename (+ dot-pos 1))
-        "")))
+  (let ((extension (string-downcase (get-file-extension file-path))))
+    (cdr (or (assoc extension mime-type-table)
+             '("" . "application/octet-stream")))))

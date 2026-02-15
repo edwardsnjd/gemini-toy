@@ -18,24 +18,20 @@
             valid-gemini-uri?
             normalize-empty-path))
 
-;;; URI validation rules for Gemini protocol
-(define uri-validation-rules
-  `((scheme . ,(lambda (uri) (eq? (uri-scheme uri) 'gemini)))
-    (no-userinfo . ,(lambda (uri) (not (uri-userinfo uri))))
-    (no-fragment . ,(lambda (uri) (not (uri-fragment uri))))))
+;;; Check if URI meets Gemini protocol requirements
+(define (valid-gemini-uri? uri)
+  (and uri
+       (eq? (uri-scheme uri) 'gemini)
+       (not (uri-userinfo uri))
+       (not (uri-fragment uri))))
 
 ;;; Parse and validate a Gemini request line
 (define (parse-gemini-request request-line)
   (safe-operation
-    (and-let* ((cleaned-request (trim-crlf request-line))
-               (uri (and (not (string-null? cleaned-request))
-                        (string->uri cleaned-request)))
-               (valid-uri (and uri (valid-gemini-uri? uri))))
-      (normalize-empty-path uri))))
-
-;;; Check if URI meets Gemini protocol requirements
-(define (valid-gemini-uri? uri)
-  (and uri (every (lambda (rule) ((cdr rule) uri)) uri-validation-rules)))
+    (let ((cleaned (trim-crlf request-line)))
+      (and-let* ((uri (and (not (string-null? cleaned)) (string->uri cleaned)))
+                 (_ (valid-gemini-uri? uri)))
+        (normalize-empty-path uri)))))
 
 ;;; Normalize empty path to root path "/"
 (define (normalize-empty-path uri)
@@ -55,21 +51,14 @@
 
 ;;; Format a Gemini response according to protocol specification  
 (define (format-gemini-response status-code meta body)
-  (let ((header (string-append (number->string status-code) " " meta "\r\n")))
-    (if body (string-append header body) header)))
+  (string-append (number->string status-code) " " meta "\r\n"
+                 (or body "")))
 
 ;;; Validate request format and constraints according to Gemini specification
 (define (validate-request request-line)
   (and (<= (string-length request-line) 1024)
        (not (string-null? (string-trim request-line)))
-       (proper-line-ending? request-line)
-       (parseable-gemini-request? request-line)))
-
-;;; Check if request has proper CRLF or LF ending
-(define (proper-line-ending? request-line)
-  (or (string-suffix? "\r\n" request-line)
-      (string-suffix? "\n" request-line)))
-
-;;; Check if request can be parsed as valid Gemini URI
-(define (parseable-gemini-request? request-line)
-  (and (parse-gemini-request request-line) #t))
+       (or (string-suffix? "\r\n" request-line)
+           (string-suffix? "\n" request-line))
+       (parse-gemini-request request-line)
+       #t))

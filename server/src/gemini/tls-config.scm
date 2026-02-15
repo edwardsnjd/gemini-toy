@@ -15,34 +15,27 @@
 (define (certificate-file-accessible? filename)
   (safe-operation
     (and (file-exists? filename)
-         (regular-file? filename)
-         (readable-file? filename))))
-
-(define (regular-file? filename)
-  (not (eq? 'directory (stat:type (stat filename)))))
-
-(define (readable-file? filename)
-  (access? filename R_OK))
+         (not (eq? 'directory (stat:type (stat filename))))
+         (access? filename R_OK))))
 
 ;;; Validate PEM format certificate/key content
 (define (validate-pem-format content cert?)
-  (let ((start-marker (if cert? "-----BEGIN CERTIFICATE-----" "-----BEGIN PRIVATE KEY-----"))
-        (end-marker (if cert? "-----END CERTIFICATE-----" "-----END PRIVATE KEY-----")))
-    (and (string-contains content start-marker)
-         (string-contains content end-marker)
-         (< (string-contains content start-marker)
-            (string-contains content end-marker)))))
+  (let* ((begin-marker (if cert? "-----BEGIN CERTIFICATE-----" "-----BEGIN PRIVATE KEY-----"))
+         (end-marker (if cert? "-----END CERTIFICATE-----" "-----END PRIVATE KEY-----"))
+         (begin-pos (string-contains content begin-marker))
+         (end-pos (string-contains content end-marker)))
+    (and begin-pos end-pos (< begin-pos end-pos))))
 
 ;;; Load and validate certificate and key files
 (define (load-certificates cert-file key-file)
   (safe-operation
-    (and-let* ((cert-accessible? (certificate-file-accessible? cert-file))
-               (key-accessible? (certificate-file-accessible? key-file))
-               (cert-content (call-with-input-file cert-file get-string-all))
-               (key-content (call-with-input-file key-file get-string-all))
-               (cert-valid? (validate-pem-format cert-content #t))
-               (key-valid? (validate-pem-format key-content #f)))
-      (cons cert-content key-content))))
+    (and (certificate-file-accessible? cert-file)
+         (certificate-file-accessible? key-file)
+         (and-let* ((cert-content (call-with-input-file cert-file get-string-all))
+                    (key-content (call-with-input-file key-file get-string-all))
+                    (_ (validate-pem-format cert-content #t))
+                    (_ (validate-pem-format key-content #f)))
+           (cons cert-content key-content)))))
 
 ;;; Set up TLS context for Gemini server
 (define (setup-tls-context cert-file key-file)
@@ -64,7 +57,7 @@
             (list (dirname cert-file) (dirname key-file))))
 
 (define (ensure-directory-exists dir-path)
-  (when (not (file-exists? dir-path))
+  (unless (file-exists? dir-path)
     (mkdir dir-path)))
 
 (define (generate-openssl-certificate cert-file key-file)

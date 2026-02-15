@@ -27,7 +27,10 @@
 
 ;;; Apply handlers until one succeeds (for pipeline processing)
 (define (or-map-handlers handlers . args)
-  (find identity (map (lambda (handler) (apply handler args)) handlers)))
+  (fold (lambda (handler acc)
+          (or acc (apply handler args)))
+        #f
+        handlers))
 
 ;;; Predicate utilities for common validations
 (define (non-empty-string? str)

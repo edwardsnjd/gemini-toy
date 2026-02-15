@@ -33,8 +33,8 @@
 (define (safe-canonicalize-path path)
   (safe-operation (canonicalize-path path)))
 
-(define (within-static-boundary? root-path target-path)
-  (string-prefix? root-path target-path))
+(define (within-static-boundary? root target)
+  (string-prefix? root target))
 
 ;;; Read file content with error handling
 (define (read-file-content file-path)
@@ -42,18 +42,13 @@
     (and (file-exists? file-path)
          (call-with-input-file file-path get-string-all))))
 
+;;; Standard Gemini index file names in priority order
+(define index-file-names '("index.gmi" "index.gemini"))
+
 ;;; Find index file in directory according to Gemini conventions
 (define (find-index-file dir-path)
   (and (file-exists? dir-path) 
        (file-is-directory? dir-path)
-       (or (find-existing-index-file dir-path index-file-names)
-           #f)))
-
-;;; Standard Gemini index file names in priority order
-(define index-file-names '("index.gmi" "index.gemini"))
-
-;;; Find first existing index file from candidates
-(define (find-existing-index-file dir-path file-names)
-  (find file-exists? 
-        (map (lambda (name) (string-append dir-path "/" name)) 
-             file-names)))
+       (find file-exists? 
+             (map (lambda (name) (string-append dir-path "/" name)) 
+                  index-file-names))))

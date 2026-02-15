@@ -11,6 +11,7 @@
   #:use-module (ice-9 getopt-long)
   #:use-module (ice-9 threads)
   #:use-module (ice-9 format)
+  #:use-module (ice-9 match)
   #:use-module (srfi srfi-1)  ; List utilities
   #:use-module (srfi srfi-2)  ; and-let*
   #:use-module (srfi srfi-9)  ; Records  
@@ -28,9 +29,9 @@
 
 ;;; Logging utility
 (define (log-message level message . args)
-  (let ((timestamp (strftime "%Y-%m-%d %H:%M:%S" (localtime (time-second (current-time time-utc)))))
-        (formatted-msg (apply format #f message args)))
-    (display (format #f "[~a] ~a: ~a\n" timestamp level formatted-msg))
+  (let* ((timestamp (strftime "%Y-%m-%d %H:%M:%S" (localtime (time-second (current-time time-utc)))))
+         (msg (apply format #f message args)))
+    (display (format #f "[~a] ~a: ~a\n" timestamp level msg))
     (force-output)))
 
 ;;; Server configuration record
@@ -76,41 +77,35 @@
              (or config 'error))))))
     (lambda (key . rest) 'error)))
 
-;;; Build configuration from parsed options  
-(define (build-and-validate-config options)
-  (let ((config-values (extract-config-values options)))
-    (and (validate-config-values config-values)
-         (let ((port (assq-ref config-values 'port))
-               (static-dir (assq-ref config-values 'static-dir))
-               (cert-file (assq-ref config-values 'cert))
-               (key-file (assq-ref config-values 'key)))
-           (and (not (string=? cert-file key-file))
-                ;; Return alist for backward compatibility with existing tests
-                config-values)))))
+;;; Extract and parse a single config field
+(define (extract-config-field options spec)
+  (let* ((field (car spec))
+         (spec-data (cdr spec))
+         (default (assq-ref spec-data 'default))
+         (parser (assq-ref spec-data 'parser))
+         (raw-value (option-ref options field (if default (format #f "~a" default) #f))))
+    (cons field 
+          (if parser 
+              (or (parser raw-value) (error "Invalid value for" field))
+              raw-value))))
 
-;;; Extract configuration values from parsed options
-(define (extract-config-values options)
-  (map (lambda (spec)
-         (let* ((field (car spec))
-                (spec-data (cdr spec))
-                (default (assq-ref spec-data 'default))
-                (parser (assq-ref spec-data 'parser))
-                (raw-value (option-ref options field (if default (format #f "~a" default) #f))))
-           (cons field 
-                 (if parser 
-                     (let ((parsed (parser raw-value)))
-                       (if parsed parsed (error "Invalid value for" field)))
-                     raw-value))))
-       config-spec))
-
-;;; Validate all configuration values
-(define (validate-config-values config-values)
+;;; Validate all config fields
+(define (all-config-valid? config-values)
   (every (lambda (spec)
            (let* ((field (car spec))
                   (validator (assq-ref (cdr spec) 'validator))
                   (value (assq-ref config-values field)))
-             (if validator (validator value) #t)))
+             (or (not validator) (validator value))))
          config-spec))
+
+;;; Build and validate configuration from parsed options  
+(define (build-and-validate-config options)
+  (let* ((config-values (map (lambda (spec) (extract-config-field options spec))
+                             config-spec))
+         (valid? (and (all-config-valid? config-values)
+                      (not (string=? (assq-ref config-values 'cert)
+                                     (assq-ref config-values 'key))))))
+    (and valid? config-values)))
 
 ;;; Display help message
 (define (show-help)
@@ -129,49 +124,61 @@
   (display "Gemini Static Server 1.0.0\n")
   (display "A toy implementation of the Gemini protocol\n"))
 
+;;; Helper to set up server socket with common options
+(define (setup-server-socket port)
+  (let ((sock (socket PF_INET SOCK_STREAM 0)))
+    (setsockopt sock SOL_SOCKET SO_REUSEADDR 1)
+    (bind sock AF_INET INADDR_ANY port)
+    (listen sock 5)
+    sock))
+
+;;; Configure TLS session with standard settings
+(define (configure-tls-session! session client-socket credentials)
+  (set-session-transport-fd! session client-socket)
+  (set-session-credentials! session credentials)
+  (set-session-dh-prime-bits! session 1024))
+
+;;; Perform TLS handshake and client handling
+(define (process-client-tls session static-dir client-addr)
+  (handshake session)
+  (log-message "DEBUG" "TLS handshake completed with ~a" client-addr)
+  (handle-client session static-dir client-addr)
+  (bye session close-request/rdwr)
+  (close-port session))
+
 ;;; Main server implementation  
 (define (main args)
-  (let ((result (parse-cli-args args)))
-    (cond
-      ((eq? result 'help)
-       (show-help)
-       (exit 0))
-      ((eq? result 'version)
-       (show-version) 
-       (exit 0))
-      ((not result)
-       (display "Error: Invalid command line arguments\n")
-       (show-help)
-       (exit 1))
-      ((list? result)  ; Config alist returned
-       (let ((port (assq-ref result 'port)))
-         (when (<= port 1024)
-           (display "Warning: Running on privileged port, may require root privileges\n"))
-         (start-server result)))
-      (else
-        (display "Error: Configuration validation failed\n")
-        (exit 1)))))
+  (match (parse-cli-args args)
+    ('help
+     (show-help)
+     (exit 0))
+    ('version
+     (show-version)
+     (exit 0))
+    (#f
+     (display "Error: Invalid command line arguments\n")
+     (show-help)
+     (exit 1))
+    (config  ; Config alist returned
+     (when (<= (assq-ref config 'port) 1024)
+       (display "Warning: Running on privileged port, may require root privileges\n"))
+     (start-server config))))
 
 ;;; Handler 1: Request validation with specific error responses
 (define (validate-request-handler request static-dir)
-  (cond
-    ((not (validate-request request))
-     (cond
-       ((> (string-length request) 1024) "59 Request too long\r\n")
-       ((non-gemini-scheme? request) "59 Only gemini:// URIs supported\r\n")
-       (else "59 Bad Request\r\n")))
-    (else #f))) ; Continue to next handler
+  (and (not (validate-request request))
+       (cond
+         ((> (string-length request) 1024) "59 Request too long\r\n")
+         ((non-gemini-scheme? request) "59 Only gemini:// URIs supported\r\n")
+         (else "59 Bad Request\r\n"))))
 
 ;;; Handler 2: URI parsing with error detection
 (define (parse-uri-handler request static-dir)
   (let ((uri (parse-gemini-request request)))
-    (cond
-      ((not uri)
-       (if (non-gemini-scheme? request)
-           "59 Only gemini:// URIs supported\r\n"
-           "59 Bad Request\r\n"))
-      ((path-traversal-attempt? (uri-path uri)) "59 Bad Request\r\n")
-      (else #f)))) ; Continue to next handler
+    (and (or (not uri) (path-traversal-attempt? (uri-path uri)))
+         (if (non-gemini-scheme? request)
+             "59 Only gemini:// URIs supported\r\n"
+             "59 Bad Request\r\n"))))
 
 ;;; Handler 3: File serving with proper error handling
 (define (serve-file-handler request static-dir)
@@ -210,17 +217,15 @@
 ;;; Backward compatibility: validate CLI args (tests expect this function)
 (define (validate-cli-args args)
   "Validate parsed CLI arguments - backward compatibility for tests"
-  (if (eq? args 'error) #f
-      (let ((port (assq-ref args 'port))
-            (static-dir (assq-ref args 'static-dir))
-            (cert-file (assq-ref args 'cert))
-            (key-file (assq-ref args 'key)))
-        (and (valid-port? port)
-             (non-empty-string? static-dir)
-             (non-empty-string? cert-file)
-             (non-empty-string? key-file)
-             (not (string=? cert-file key-file))
-             (if (<= port 1024) 'warning #t)))))
+  (unless (eq? args 'error)
+    (and (every (lambda (spec)
+                  (let* ((field (car spec))
+                         (validator (assq-ref (cdr spec) 'validator))
+                         (value (assq-ref args field)))
+                    (or (not validator) (validator value))))
+                config-spec)
+         (not (string=? (assq-ref args 'cert) (assq-ref args 'key)))
+         (if (<= (assq-ref args 'port) 1024) 'warning #t))))
 
 ;;; Request processing pipeline - handlers return response or #f to continue
 (define request-handlers
@@ -290,59 +295,28 @@
 (define (server-loop port static-dir cert-file key-file)
   (catch #t
     (lambda ()
-      ;; Set up TLS credentials
       (let ((cred (setup-tls-context cert-file key-file)))
-        (if (not cred)
-            (begin
-              (log-message "ERROR" "Failed to set up TLS context")
-              (exit 1))
-            ;; Create server socket
-            (let ((server-socket (socket PF_INET SOCK_STREAM 0)))
-              ;; Set socket options
-              (setsockopt server-socket SOL_SOCKET SO_REUSEADDR 1)
-              
-              ;; Bind to port
-              (bind server-socket AF_INET INADDR_ANY port)
-              
-              ;; Start listening
-              (listen server-socket 5)
-              (log-message "INFO" "Server listening on port ~a" port)
-              
-              ;; Main accept loop
-              (let loop ()
-                (log-message "DEBUG" "Waiting for connections...")
-                (let ((client-connection (accept server-socket)))
-                  (let ((client-socket (car client-connection))
-                        (client-address (cdr client-connection)))
-                    (let ((client-addr "unknown"))
-                      (log-message "INFO" "Client connected from ~a" client-addr)
-                      
-                      ;; Set up TLS session for this client
-                      (catch #t
-                        (lambda ()
-                          (let ((session (make-session connection-end/server)))
-                            ;; Configure TLS session
-                            (set-session-transport-fd! session client-socket)
-                            (set-session-credentials! session cred)
-                            (set-session-dh-prime-bits! session 1024)
-                            
-                            ;; Perform TLS handshake
-                            (handshake session)
-                            (log-message "DEBUG" "TLS handshake completed with ~a" client-addr)
-                            
-                            ;; Handle the client request
-                            (handle-client session static-dir client-addr)
-                            
-                            ;; Close TLS session
-                            (bye session close-request/rdwr)
-                            (close-port session)
-                            (log-message "DEBUG" "Connection closed with ~a" client-addr)))
-                        (lambda (key . args)
-                          (log-message "ERROR" "TLS error with client ~a: ~a ~a" client-addr key args)
-                          (close client-socket)))
-                      
-                       ;; Continue accepting new connections
-                       (loop)))))))))
+        (unless cred
+          (log-message "ERROR" "Failed to set up TLS context")
+          (exit 1))
+        (let ((server-socket (setup-server-socket port)))
+          (log-message "INFO" "Server listening on port ~a" port)
+          (let accept-loop ()
+            (log-message "DEBUG" "Waiting for connections...")
+            (let* ((client-connection (accept server-socket))
+                   (client-socket (car client-connection))
+                   (client-addr "unknown"))
+              (log-message "INFO" "Client connected from ~a" client-addr)
+              (catch #t
+                (lambda ()
+                  (let ((session (make-session connection-end/server)))
+                    (configure-tls-session! session client-socket cred)
+                    (process-client-tls session static-dir client-addr)
+                    (log-message "DEBUG" "Connection closed with ~a" client-addr)))
+                (lambda (key . args)
+                  (log-message "ERROR" "TLS error with client ~a: ~a ~a" client-addr key args)
+                  (close client-socket)))
+              (accept-loop))))))
     (lambda (key . args)
       (log-message "FATAL" "Server error: ~a ~a" key args)
       (exit 1))))
