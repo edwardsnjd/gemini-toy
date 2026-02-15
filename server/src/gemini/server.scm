@@ -11,6 +11,9 @@
   #:use-module (ice-9 getopt-long)
   #:use-module (ice-9 threads)
   #:use-module (ice-9 format)
+  #:use-module (srfi srfi-1)  ; List utilities
+  #:use-module (srfi srfi-2)  ; and-let*
+  #:use-module (srfi srfi-9)  ; Records  
   #:use-module (srfi srfi-14) ; char-set for string-trim-right
   #:use-module (srfi srfi-19) ; Time/date formatting
   #:use-module (web uri)
@@ -18,7 +21,10 @@
   #:use-module (gemini file-handler)
   #:use-module (gemini tls-config)
   #:use-module (gemini mime-types)
-  #:export (main parse-cli-args validate-cli-args process-request server-loop log-message))
+  #:use-module (gemini utils)
+  #:export (main parse-cli-args validate-cli-args process-request server-loop log-message
+            ;; Backward compatibility for tests
+            config-to-alist))
 
 ;;; Logging utility
 (define (log-message level message . args)
@@ -26,6 +32,27 @@
         (formatted-msg (apply format #f message args)))
     (display (format #f "[~a] ~a: ~a\n" timestamp level formatted-msg))
     (force-output)))
+
+;;; Server configuration record
+(define-record-type <server-config>
+  (make-server-config port static-dir cert-file key-file)
+  server-config?
+  (port config-port)
+  (static-dir config-static-dir)
+  (cert-file config-cert-file)
+  (key-file config-key-file))
+
+;;; Configuration specification with defaults and validators
+(define config-spec
+  `((port (default . 1965)
+          (parser . ,string->number)
+          (validator . ,valid-port?))
+    (static-dir (default . "./static")
+                (validator . ,non-empty-string?))
+    (cert (default . "server/certs/cert.pem")
+           (validator . ,non-empty-string?))
+    (key (default . "server/certs/key.pem")
+          (validator . ,non-empty-string?))))
 
 ;;; Command line option specification
 (define option-spec
@@ -36,7 +63,7 @@
     (help (single-char #\h) (value #f))
     (version (single-char #\v) (value #f))))
 
-;;; Parse command line arguments
+;;; Parse and validate command line arguments  
 (define (parse-cli-args args)
   (catch #t
     (lambda ()
@@ -44,40 +71,46 @@
         (cond
           ((option-ref options 'help #f) 'help)
           ((option-ref options 'version #f) 'version)
-          (else
-            (let ((port-num (string->number (option-ref options 'port "1965"))))
-              (if (not port-num)
-                  'error
-                  `((port . ,port-num)
-                    (static-dir . ,(option-ref options 'static-dir "./static"))
-                    (cert . ,(option-ref options 'cert "server/certs/cert.pem"))
-                    (key . ,(option-ref options 'key "server/certs/key.pem")))))))))
-    (lambda (key . args)
-      'error)))
+          (else 
+           (let ((config (build-and-validate-config options)))
+             (or config 'error))))))
+    (lambda (key . rest) 'error)))
 
-;;; Validate parsed command line arguments
-(define (validate-cli-args args)
-  (if (eq? args 'error) #f
-      (let ((port (assq-ref args 'port))
-            (static-dir (assq-ref args 'static-dir))
-            (cert-file (assq-ref args 'cert))
-            (key-file (assq-ref args 'key)))
-        (if (and
-              ;; Validate port number
-              (number? port) 
-              (> port 0) 
-              (<= port 65535)
-              ;; Validate static directory path
-              (and static-dir (not (string-null? static-dir)))
-              ;; Validate certificate file path
-              (and cert-file (not (string-null? cert-file)))
-              ;; Validate private key file path
-              (and key-file (not (string-null? key-file)))
-              ;; Ensure cert and key are different files
-              (not (string=? cert-file key-file)))
-            ;; All basic validation passed, check for privileged port warning
-            (if (<= port 1024) 'warning #t)
-            #f))))
+;;; Build configuration from parsed options  
+(define (build-and-validate-config options)
+  (let ((config-values (extract-config-values options)))
+    (and (validate-config-values config-values)
+         (let ((port (assq-ref config-values 'port))
+               (static-dir (assq-ref config-values 'static-dir))
+               (cert-file (assq-ref config-values 'cert))
+               (key-file (assq-ref config-values 'key)))
+           (and (not (string=? cert-file key-file))
+                ;; Return alist for backward compatibility with existing tests
+                config-values)))))
+
+;;; Extract configuration values from parsed options
+(define (extract-config-values options)
+  (map (lambda (spec)
+         (let* ((field (car spec))
+                (spec-data (cdr spec))
+                (default (assq-ref spec-data 'default))
+                (parser (assq-ref spec-data 'parser))
+                (raw-value (option-ref options field (if default (format #f "~a" default) #f))))
+           (cons field 
+                 (if parser 
+                     (let ((parsed (parser raw-value)))
+                       (if parsed parsed (error "Invalid value for" field)))
+                     raw-value))))
+       config-spec))
+
+;;; Validate all configuration values
+(define (validate-config-values config-values)
+  (every (lambda (spec)
+           (let* ((field (car spec))
+                  (validator (assq-ref (cdr spec) 'validator))
+                  (value (assq-ref config-values field)))
+             (if validator (validator value) #t)))
+         config-spec))
 
 ;;; Display help message
 (define (show-help)
@@ -96,95 +129,108 @@
   (display "Gemini Static Server 1.0.0\n")
   (display "A toy implementation of the Gemini protocol\n"))
 
-;;; Main server implementation
+;;; Main server implementation  
 (define (main args)
-  (let ((parsed-args (parse-cli-args args)))
+  (let ((result (parse-cli-args args)))
     (cond
-      ((eq? parsed-args 'help)
+      ((eq? result 'help)
        (show-help)
        (exit 0))
-      ((eq? parsed-args 'version)
-       (show-version)
+      ((eq? result 'version)
+       (show-version) 
        (exit 0))
-      ((eq? parsed-args 'error)
+      ((not result)
        (display "Error: Invalid command line arguments\n")
        (show-help)
        (exit 1))
+      ((list? result)  ; Config alist returned
+       (let ((port (assq-ref result 'port)))
+         (when (<= port 1024)
+           (display "Warning: Running on privileged port, may require root privileges\n"))
+         (start-server result)))
       (else
-        (let ((validation (validate-cli-args parsed-args)))
-          (cond
-            ((eq? validation #f)
-             (display "Error: Invalid argument values\n")
-             (show-help)
-             (exit 1))
-            ((eq? validation 'warning)
-             (display "Warning: Running on privileged port, may require root privileges\n")
-             (start-server parsed-args))
-            (else
-              (start-server parsed-args))))))))
+        (display "Error: Configuration validation failed\n")
+        (exit 1)))))
 
-;;; Process a single Gemini request
+;;; Handler 1: Request validation with specific error responses
+(define (validate-request-handler request static-dir)
+  (cond
+    ((not (validate-request request))
+     (cond
+       ((> (string-length request) 1024) "59 Request too long\r\n")
+       ((non-gemini-scheme? request) "59 Only gemini:// URIs supported\r\n")
+       (else "59 Bad Request\r\n")))
+    (else #f))) ; Continue to next handler
+
+;;; Handler 2: URI parsing with error detection
+(define (parse-uri-handler request static-dir)
+  (let ((uri (parse-gemini-request request)))
+    (cond
+      ((not uri)
+       (if (non-gemini-scheme? request)
+           "59 Only gemini:// URIs supported\r\n"
+           "59 Bad Request\r\n"))
+      ((path-traversal-attempt? (uri-path uri)) "59 Bad Request\r\n")
+      (else #f)))) ; Continue to next handler
+
+;;; Handler 3: File serving with proper error handling
+(define (serve-file-handler request static-dir)
+  (error-or "40 Temporary Failure\r\n"
+    (and-let* ((uri (parse-gemini-request request))
+               (safe-path (resolve-file-path static-dir (uri-path uri)))
+               (final-path (resolve-directory-index safe-path))
+               (content (read-file-content final-path))
+               (mime-type (get-mime-type final-path)))
+      (format-gemini-response 20 mime-type content))))
+
+;;; Helper predicates for clean request analysis
+(define (non-gemini-scheme? request)
+  (safe-operation
+    (let ((uri (string->uri (string-trim-right request (char-set #\newline #\return)))))
+      (and uri (uri-scheme uri) (not (equal? (uri-scheme uri) 'gemini))))))
+
+(define (path-traversal-attempt? path)
+  (string-contains path ".."))
+
+(define (resolve-directory-index path)
+  (if (file-is-directory? path)
+      (or (find-index-file path) #f)
+      path))
+
+;;; Backward compatibility function for tests
+(define (config-to-alist config)
+  "Convert server config record to association list for test compatibility"
+  (if (server-config? config)
+      `((port . ,(config-port config))
+        (static-dir . ,(config-static-dir config))
+        (cert . ,(config-cert-file config))
+        (key . ,(config-key-file config)))
+      config))
+
+;;; Backward compatibility: validate CLI args (tests expect this function)
+(define (validate-cli-args args)
+  "Validate parsed CLI arguments - backward compatibility for tests"
+  (if (eq? args 'error) #f
+      (let ((port (assq-ref args 'port))
+            (static-dir (assq-ref args 'static-dir))
+            (cert-file (assq-ref args 'cert))
+            (key-file (assq-ref args 'key)))
+        (and (valid-port? port)
+             (non-empty-string? static-dir)
+             (non-empty-string? cert-file)
+             (non-empty-string? key-file)
+             (not (string=? cert-file key-file))
+             (if (<= port 1024) 'warning #t)))))
+
+;;; Request processing pipeline - handlers return response or #f to continue
+(define request-handlers
+  (list validate-request-handler
+        parse-uri-handler
+        serve-file-handler))
+
+;;; Process a single Gemini request using composable handlers
 (define (process-request request-line static-dir)
-  (catch #t
-    (lambda ()
-      ;; Step 1: Validate request format
-      (if (not (validate-request request-line))
-          (cond
-            ((> (string-length request-line) 1024) "59 Request too long\r\n")
-            (else
-              ;; Check if it's a non-gemini scheme before returning generic error
-              (let ((raw-uri (catch #t
-                               (lambda ()
-                                 (string->uri (string-trim-right request-line
-                                                (char-set #\newline #\return))))
-                               (lambda (key . args) #f))))
-                (if (and raw-uri (uri-scheme raw-uri)
-                         (not (equal? (uri-scheme raw-uri) 'gemini)))
-                    "59 Only gemini:// URIs supported\r\n"
-                    "59 Bad Request\r\n"))))
-          ;; Step 2: Parse URI
-          (let ((uri (parse-gemini-request request-line)))
-            (if (not uri)
-                ;; Distinguish non-gemini scheme from other parse failures
-                (let ((raw-uri (catch #t
-                                 (lambda ()
-                                   (string->uri (string-trim-right request-line
-                                                  (char-set #\newline #\return))))
-                                 (lambda (key . args) #f))))
-                  (if (and raw-uri (uri-scheme raw-uri)
-                           (not (equal? (uri-scheme raw-uri) 'gemini)))
-                      "59 Only gemini:// URIs supported\r\n"
-                      "59 Bad Request\r\n"))
-                ;; Step 3: Check for path traversal and normalize path
-                (let ((path (uri-path uri)))
-                  (if (string-contains path "..")
-                      "59 Bad Request\r\n"
-                      ;; Step 4: Resolve file path
-                      (let ((file-path (resolve-file-path static-dir path)))
-                        (if (not file-path)
-                            "51 Not Found\r\n"
-                            ;; Step 4.5: If path is a directory, look for index file
-                            (let ((actual-path
-                                    (if (file-is-directory? file-path)
-                                        (find-index-file file-path)
-                                        file-path)))
-                              (if (not actual-path)
-                                  "51 Not Found\r\n"
-                                  ;; Step 5: Read file and determine MIME type
-                                  (catch #t
-                                    (lambda ()
-                                      (let ((content (read-file-content actual-path)))
-                                        (if content
-                                            (let ((mime-type (get-mime-type actual-path)))
-                                              (format-gemini-response 20 mime-type content))
-                                            "51 Not Found\r\n")))
-                                    (lambda (key . args)
-                                      ;; Handle file access errors
-                                      (cond
-                                        ((eq? key 'system-error) "40 Temporary Failure\r\n")
-                                        (else "51 Not Found\r\n"))))))))))))))
-    (lambda (key . args)
-      "40 Temporary Failure\r\n")))
+  (or-map-handlers request-handlers request-line static-dir))
 
 ;;; Start the Gemini server
 (define (start-server config)
