@@ -66,7 +66,7 @@ echo -e "${BLUE}🌐 Starting Gemini server on port $SERVER_PORT...${NC}"
 echo "📂 Serving from: $STATIC_DIR"
 
 cd server
-GUILE_LOAD_PATH=src guile src/gemini/server.scm -d "../$STATIC_DIR" -p $SERVER_PORT > server.log 2>&1 &
+GUILE_LOAD_PATH=src guile src/gemini/server.scm -d "../$STATIC_DIR" -p $SERVER_PORT -c certs/cert.pem -k certs/key.pem > server.log 2>&1 &
 SERVER_PID=$!
 cd ..
 

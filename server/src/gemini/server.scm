@@ -11,6 +11,7 @@
   #:use-module (ice-9 getopt-long)
   #:use-module (ice-9 threads)
   #:use-module (ice-9 format)
+  #:use-module (srfi srfi-14) ; char-set for string-trim-right
   #:use-module (srfi srfi-19) ; Time/date formatting
   #:use-module (web uri)
   #:use-module (gemini protocol)
@@ -44,10 +45,13 @@
           ((option-ref options 'help #f) 'help)
           ((option-ref options 'version #f) 'version)
           (else
-            `((port . ,(string->number (option-ref options 'port "1965")))
-              (static-dir . ,(option-ref options 'static-dir "./static"))
-              (cert . ,(option-ref options 'cert "server/certs/cert.pem"))
-              (key . ,(option-ref options 'key "server/certs/key.pem")))))))
+            (let ((port-num (string->number (option-ref options 'port "1965"))))
+              (if (not port-num)
+                  'error
+                  `((port . ,port-num)
+                    (static-dir . ,(option-ref options 'static-dir "./static"))
+                    (cert . ,(option-ref options 'cert "server/certs/cert.pem"))
+                    (key . ,(option-ref options 'key "server/certs/key.pem")))))))))
     (lambda (key . args)
       'error)))
 
@@ -58,20 +62,22 @@
             (static-dir (assq-ref args 'static-dir))
             (cert-file (assq-ref args 'cert))
             (key-file (assq-ref args 'key)))
-        (and
-          ;; Validate port number
-          (and (number? port) 
-               (> port 0) 
-               (<= port 65535)
-               (if (<= port 1024) 'warning #t))
-          ;; Validate static directory path
-          (and static-dir (not (string-null? static-dir)))
-          ;; Validate certificate file path
-          (and cert-file (not (string-null? cert-file)))
-          ;; Validate private key file path
-          (and key-file (not (string-null? key-file)))
-          ;; Ensure cert and key are different files
-          (not (string=? cert-file key-file))))))
+        (if (and
+              ;; Validate port number
+              (number? port) 
+              (> port 0) 
+              (<= port 65535)
+              ;; Validate static directory path
+              (and static-dir (not (string-null? static-dir)))
+              ;; Validate certificate file path
+              (and cert-file (not (string-null? cert-file)))
+              ;; Validate private key file path
+              (and key-file (not (string-null? key-file)))
+              ;; Ensure cert and key are different files
+              (not (string=? cert-file key-file)))
+            ;; All basic validation passed, check for privileged port warning
+            (if (<= port 1024) 'warning #t)
+            #f))))
 
 ;;; Display help message
 (define (show-help)
@@ -125,11 +131,30 @@
       (if (not (validate-request request-line))
           (cond
             ((> (string-length request-line) 1024) "59 Request too long\r\n")
-            (else "59 Bad Request\r\n"))
+            (else
+              ;; Check if it's a non-gemini scheme before returning generic error
+              (let ((raw-uri (catch #t
+                               (lambda ()
+                                 (string->uri (string-trim-right request-line
+                                                (char-set #\newline #\return))))
+                               (lambda (key . args) #f))))
+                (if (and raw-uri (uri-scheme raw-uri)
+                         (not (equal? (uri-scheme raw-uri) 'gemini)))
+                    "59 Only gemini:// URIs supported\r\n"
+                    "59 Bad Request\r\n"))))
           ;; Step 2: Parse URI
           (let ((uri (parse-gemini-request request-line)))
             (if (not uri)
-                "59 Bad Request\r\n"
+                ;; Distinguish non-gemini scheme from other parse failures
+                (let ((raw-uri (catch #t
+                                 (lambda ()
+                                   (string->uri (string-trim-right request-line
+                                                  (char-set #\newline #\return))))
+                                 (lambda (key . args) #f))))
+                  (if (and raw-uri (uri-scheme raw-uri)
+                           (not (equal? (uri-scheme raw-uri) 'gemini)))
+                      "59 Only gemini:// URIs supported\r\n"
+                      "59 Bad Request\r\n"))
                 ;; Step 3: Check for path traversal and normalize path
                 (let ((path (uri-path uri)))
                   (if (string-contains path "..")
@@ -138,19 +163,26 @@
                       (let ((file-path (resolve-file-path static-dir path)))
                         (if (not file-path)
                             "51 Not Found\r\n"
-                            ;; Step 5: Read file and determine MIME type
-                            (catch #t
-                              (lambda ()
-                                (let ((content (read-file-content file-path)))
-                                  (if content
-                                      (let ((mime-type (get-mime-type file-path)))
-                                        (format-gemini-response 20 mime-type content))
-                                      "51 Not Found\r\n")))
-                              (lambda (key . args)
-                                ;; Handle file access errors
-                                (cond
-                                  ((eq? key 'system-error) "40 Temporary Failure\r\n")
-                                  (else "51 Not Found\r\n"))))))))))))
+                            ;; Step 4.5: If path is a directory, look for index file
+                            (let ((actual-path
+                                    (if (file-is-directory? file-path)
+                                        (find-index-file file-path)
+                                        file-path)))
+                              (if (not actual-path)
+                                  "51 Not Found\r\n"
+                                  ;; Step 5: Read file and determine MIME type
+                                  (catch #t
+                                    (lambda ()
+                                      (let ((content (read-file-content actual-path)))
+                                        (if content
+                                            (let ((mime-type (get-mime-type actual-path)))
+                                              (format-gemini-response 20 mime-type content))
+                                            "51 Not Found\r\n")))
+                                    (lambda (key . args)
+                                      ;; Handle file access errors
+                                      (cond
+                                        ((eq? key 'system-error) "40 Temporary Failure\r\n")
+                                        (else "51 Not Found\r\n"))))))))))))))
     (lambda (key . args)
       "40 Temporary Failure\r\n")))
 
@@ -264,11 +296,13 @@
                           (close client-socket)))
                       
                        ;; Continue accepting new connections
-                       (loop))))))))))) 
+                       (loop)))))))))
     (lambda (key . args)
       (log-message "FATAL" "Server error: ~a ~a" key args)
-      (exit 1))
+      (exit 1))))
 
-;;; When run as script
-(when (batch-mode?)
+;;; When run as script (not when loaded as a module by tests)
+(when (and (batch-mode?)
+           (let ((script (car (command-line))))
+             (string-suffix? "server.scm" script)))
   (main (command-line)))

@@ -126,7 +126,9 @@
 (define (get-file-extension file-path)
   (let ((basename (basename file-path)))
     (let ((dot-pos (string-rindex basename #\.)))
-      (if (and dot-pos 
+      (if (and dot-pos
+               ;; Ensure dot is not at the start (hidden files like .gitignore)
+               (> dot-pos 0)
                ;; Ensure dot is not at the end of filename
                (< dot-pos (- (string-length basename) 1)))
           ;; Extract extension after the dot

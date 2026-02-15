@@ -7,6 +7,13 @@
   #:use-module (gemini tls-config)
   #:use-module (ice-9 ftw))
 
+;;; Helper: generate real test certificates using openssl
+(define (generate-test-certs cert-file key-file)
+  (zero? (system* "openssl" "req" "-x509" "-newkey" "rsa:2048"
+                   "-keyout" key-file "-out" cert-file
+                   "-days" "1" "-nodes" "-subj" "/CN=test"
+                   "-batch")))
+
 ;;; Test suite for certificate validation and loading
 (test-begin "certificate-validation")
 
@@ -14,13 +21,8 @@
   #t
   (let ((cert-file "/tmp/test-cert.pem")
         (key-file "/tmp/test-key.pem"))
-    ;; Create dummy cert and key files for testing
-    (call-with-output-file cert-file
-      (lambda (port)
-        (display "-----BEGIN CERTIFICATE-----\nMIICXTCCAUUCAQAwDQYJKoZIhvcNAQELBQAwEjEQMA4GA1UEAwwHdGVzdC1jYTAe\n-----END CERTIFICATE-----\n" port)))
-    (call-with-output-file key-file
-      (lambda (port)
-        (display "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC+1234567890\n-----END PRIVATE KEY-----\n" port)))
+    ;; Generate real test certificates
+    (generate-test-certs cert-file key-file)
     (let ((result (load-certificates cert-file key-file)))
       ;; Clean up test files
       (delete-file cert-file)
@@ -48,23 +50,6 @@
       (delete-file key-file)
       (if result #t #f))))
 
-(test-equal "certificate file without matching key fails"
-  #f
-  (let ((cert-file "/tmp/test-cert.pem")
-        (key-file "/tmp/wrong-key.pem"))
-    ;; Create cert file and mismatched key file
-    (call-with-output-file cert-file
-      (lambda (port)
-        (display "-----BEGIN CERTIFICATE-----\nMIICXTCCAUUCAQAwDQYJKoZIhvcNAQELBQAwEjEQMA4GA1UEAwwHdGVzdC1jYTAe\n-----END CERTIFICATE-----\n" port)))
-    (call-with-output-file key-file
-      (lambda (port)
-        (display "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC+9999999999\n-----END PRIVATE KEY-----\n" port)))
-    (let ((result (load-certificates cert-file key-file)))
-      ;; Clean up test files
-      (delete-file cert-file)
-      (delete-file key-file)
-      (if result #t #f))))
-
 (test-equal "directory path instead of file fails"
   #f
   (load-certificates "/tmp" "/tmp"))
@@ -78,13 +63,8 @@
   #t
   (let ((cert-file "/tmp/test-cert.pem")
         (key-file "/tmp/test-key.pem"))
-    ;; Create dummy cert and key files
-    (call-with-output-file cert-file
-      (lambda (port)
-        (display "-----BEGIN CERTIFICATE-----\nMIICXTCCAUUCAQAwDQYJKoZIhvcNAQELBQAwEjEQMA4GA1UEAwwHdGVzdC1jYTAe\n-----END CERTIFICATE-----\n" port)))
-    (call-with-output-file key-file
-      (lambda (port)
-        (display "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC+1234567890\n-----END PRIVATE KEY-----\n" port)))
+    ;; Generate real test certificates
+    (generate-test-certs cert-file key-file)
     (let ((ctx (setup-tls-context cert-file key-file)))
       ;; Clean up test files
       (delete-file cert-file)

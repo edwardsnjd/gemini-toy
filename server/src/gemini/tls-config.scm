@@ -178,25 +178,18 @@
         (when (not (file-exists? key-dir))
           (mkdir key-dir))
         
-        ;; WARNING: This is a toy implementation with hardcoded certificate content
-        ;; Real implementation should generate proper cryptographic keys and certificates
-        ;; using OpenSSL, GnuTLS, or similar cryptographic libraries
-        ;;
-        ;; For production use, consider:
-        ;; - Let's Encrypt for free real certificates
-        ;; - Self-signed certificates generated with proper tools
-        ;; - Corporate CA if deploying within an organization
-        (let ((cert-content "-----BEGIN CERTIFICATE-----\nMIICXTCCAUUCAQAwDQYJKoZIhvcNAQELBQAwEjEQMA4GA1UEAwwHdGVzdC1jYTAe\nFw0yNDAyMTEwMDAwMDBaFw0yNTAyMTEwMDAwMDBaMBIxEDAOBgNVBAMMB3Rlc3Qt\nY2EwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC+1234567890abcdef\ntest-certificate-content-for-toy-implementation-only\n-----END CERTIFICATE-----\n")
-              (key-content "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC+1234567890\nabcdef-test-private-key-content-for-toy-implementation\n-----END PRIVATE KEY-----\n"))
-          ;; Write certificate file
-          (call-with-output-file cert-file
-            (lambda (port)
-              (display cert-content port)))
-          ;; Write private key file  
-          (call-with-output-file key-file
-            (lambda (port)
-              (display key-content port)))
-          #t)))  ; Success
+        ;; Generate a real self-signed certificate using OpenSSL
+        ;; This creates a minimal certificate suitable for development/testing
+        (let ((exit-code (system* "openssl" "req" "-x509" "-newkey" "rsa:2048"
+                                  "-keyout" key-file
+                                  "-out" cert-file
+                                  "-days" "365"
+                                  "-nodes"
+                                  "-subj" "/CN=localhost"
+                                  "-batch")))
+          (if (zero? exit-code)
+              #t
+              #f))))  ; openssl command failed
     (lambda (key . args)
       ;; Certificate generation failed
       #f)))
