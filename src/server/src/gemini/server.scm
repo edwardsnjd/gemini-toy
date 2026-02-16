@@ -134,17 +134,19 @@
 
 ;;; Configure TLS session with standard settings
 (define (configure-tls-session! session client-socket credentials)
-  (set-session-transport-fd! session client-socket)
+  (set-session-transport-fd! session (fileno client-socket))
   (set-session-credentials! session credentials)
-  (set-session-dh-prime-bits! session 1024))
+  (set-session-dh-prime-bits! session 1024)
+  (set-session-priorities! session "NORMAL"))
 
 ;;; Perform TLS handshake and client handling
 (define (process-client-tls session static-dir client-addr)
   (handshake session)
   (log-message "DEBUG" "TLS handshake completed with ~a" client-addr)
-  (handle-client session static-dir client-addr)
-  (bye session close-request/rdwr)
-  (close-port session))
+  (let ((port (session-record-port session)))
+    (handle-client port static-dir client-addr)
+    (close-port port))
+  (bye session close-request/rdwr))
 
 ;;; Main server implementation  
 (define (main args)
