@@ -1,0 +1,47 @@
+# Logs
+*.log
+logs/
+
+# Backup files
+*.backup
+*.bak
+*.tmp
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Test results and coverage
+test-results/
+test-results.xml
+test-results*.txt
+*-test-results.txt
+coverage/
+*.coverage
+.nyc_output/
+docs/*TESTING_RESULTS*.md
+docs/*test-results*.txt
+docs/*testing-summary*.md
+
+# Build artifacts
+dist/
+build/
+node_modules/
+.next/
+
+# IDE
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Runtime
+pid/
+*.pid

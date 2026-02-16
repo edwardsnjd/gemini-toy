@@ -26,18 +26,7 @@ run:
 	@bash scripts/start-server.sh
 
 test:
-	@echo "Running all tests..."
-	@if [ -f "scripts/run-all-tests.sh" ]; then \
-		bash scripts/run-all-tests.sh; \
-	else \
-		echo "No test runner found. Looking for test files..."; \
-		if [ -d "test/acceptance-tests" ]; then \
-			echo "Found acceptance tests in test/acceptance-tests"; \
-			cd test/acceptance-tests && for test in *.sh; do [ -f "$$test" ] && bash "$$test"; done; \
-		else \
-			echo "No tests found"; \
-		fi; \
-	fi
+	@bash scripts/run-all-tests.sh
 
 build: build-container
 

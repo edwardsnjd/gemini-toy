@@ -37,7 +37,7 @@ echo "🔧 Using Guile: $(guile --version | head -1)"
 echo
 
 cd src/server
-GUILE_LOAD_PATH=src:tests guile run-unit-tests.scm
+GUILE_LOAD_PATH=src:tests guile tests/run-unit-tests.scm
 
 echo
 echo "✅ Unit tests completed!"

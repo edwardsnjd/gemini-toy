@@ -16,7 +16,7 @@ cd "$PROJECT_ROOT"
 
 # Configuration
 SERVER_PORT=1965
-STATIC_DIR="static"
+TEST_CONTENT_DIR="test/test-content"
 TEST_TIMEOUT=30
 SERVER_PID=""
 
@@ -55,8 +55,8 @@ if ! command -v openssl &> /dev/null; then
     exit 1
 fi
 
-if [ ! -d "$STATIC_DIR" ]; then
-    echo -e "${RED}❌ Error: Static directory '$STATIC_DIR' not found${NC}"
+if [ ! -d "$TEST_CONTENT_DIR" ]; then
+    echo -e "${RED}❌ Error: Test content directory '$TEST_CONTENT_DIR' not found${NC}"
     echo -e "   Create it with test content or run from the correct directory"
     exit 1
 fi
@@ -66,10 +66,10 @@ echo
 
 # Start the test server
 echo -e "${BLUE}🌐 Starting Gemini server on port $SERVER_PORT...${NC}"
-echo "📂 Serving from: $STATIC_DIR"
+echo "📂 Serving from: $TEST_CONTENT_DIR"
 
 cd src/server
-GUILE_LOAD_PATH=src guile src/gemini/server.scm -d "../../$STATIC_DIR" -p $SERVER_PORT -c certs/cert.pem -k certs/key.pem > server.log 2>&1 &
+GUILE_LOAD_PATH=src guile src/gemini/server.scm -d "../../$TEST_CONTENT_DIR" -p $SERVER_PORT -c certs/cert.pem -k certs/key.pem > server.log 2>&1 &
 SERVER_PID=$!
 cd ../..
 
