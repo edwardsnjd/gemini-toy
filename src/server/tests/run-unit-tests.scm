@@ -3,9 +3,9 @@
 
 ;;; Unit Test Runner
 ;;; Runs all unit tests in the tests/ directory
-
-(add-to-load-path (string-append (dirname (current-filename)) "/src"))
-(add-to-load-path (string-append (dirname (current-filename)) "/tests"))
+;;; 
+;;; Note: This script expects GUILE_LOAD_PATH to be set by the calling script
+;;; to include 'src' and 'tests' directories.
 
 (use-modules (srfi srfi-64))  ; Testing framework
 
