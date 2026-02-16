@@ -42,27 +42,7 @@ cleanup() {
 # Set trap for cleanup
 trap cleanup EXIT INT TERM
 
-# Check prerequisites
-echo "🔍 Checking prerequisites..."
 
-if ! command -v guile &> /dev/null; then
-    echo -e "${RED}❌ Error: GNU Guile is not installed${NC}"
-    exit 1
-fi
-
-if ! command -v openssl &> /dev/null; then
-    echo -e "${RED}❌ Error: OpenSSL is not installed (needed for TLS testing)${NC}"
-    exit 1
-fi
-
-if [ ! -d "$TEST_CONTENT_DIR" ]; then
-    echo -e "${RED}❌ Error: Test content directory '$TEST_CONTENT_DIR' not found${NC}"
-    echo -e "   Create it with test content or run from the correct directory"
-    exit 1
-fi
-
-echo -e "${GREEN}✅ Prerequisites satisfied${NC}"
-echo
 
 # Start the test server
 echo -e "${BLUE}🌐 Starting Gemini server on port $SERVER_PORT...${NC}"
@@ -103,11 +83,29 @@ echo "================================"
 if [ -f "test/acceptance-tests/run-acceptance-tests.scm" ]; then
     echo "📋 Running structured acceptance test suite..."
     cd test/acceptance-tests
-    if GUILE_LOAD_PATH=../../src/server/src:. timeout $TEST_TIMEOUT guile run-acceptance-tests.scm; then
+    TEST_OUTPUT=$(GUILE_LOAD_PATH=../../src/server/src:. timeout $TEST_TIMEOUT guile run-acceptance-tests.scm 2>&1)
+    TEST_EXIT=$?
+    
+    # Display test output
+    echo "$TEST_OUTPUT"
+    
+    # Check for test failures
+    if echo "$TEST_OUTPUT" | grep -q "# of unexpected failures: [1-9]"; then
+        echo -e "${RED}❌ Acceptance tests FAILED${NC}"
+        ACCEPTANCE_FAILED=1
+    elif echo "$TEST_OUTPUT" | grep -q "# of unexpected errors: [1-9]"; then
+        echo -e "${RED}❌ Acceptance tests had errors${NC}"
+        ACCEPTANCE_FAILED=1
+    elif [ $TEST_EXIT -eq 0 ]; then
         echo -e "${GREEN}✅ Structured acceptance tests completed${NC}"
     else
         echo -e "${YELLOW}⚠️  Structured acceptance tests had issues (expected - may need server fixes)${NC}"
     fi
+    cd ../..
+else
+    echo -e "${YELLOW}ℹ️  Structured acceptance tests not available${NC}"
+fi
+
     cd ../..
 else
     echo -e "${YELLOW}ℹ️  Structured acceptance tests not available${NC}"

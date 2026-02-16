@@ -182,13 +182,25 @@
 
 ;;; Handler 3: File serving with proper error handling
 (define (serve-file-handler request static-dir)
-  (error-or response/temporary-failure
-    (and-let* ((uri (parse-gemini-request request))
-               (safe-path (resolve-file-path static-dir (uri-path uri)))
-               (final-path (resolve-directory-index safe-path))
-               (content (read-file-content final-path))
-               (mime-type (get-mime-type final-path)))
-      (format-gemini-response 20 mime-type content))))
+  (or (safe-operation
+        (and-let* ((uri (parse-gemini-request request)))
+          ;; Try to resolve the path - if it fails, file doesn't exist
+          (let ((safe-path (resolve-file-path static-dir (uri-path uri)))
+                (final-path #f))
+            (if (not safe-path)
+                ;; Path resolution failed - likely file doesn't exist or outside boundary
+                response/not-found
+                ;; Path resolved successfully, check for index files
+                (begin
+                  (set! final-path (resolve-directory-index safe-path))
+                  ;; Try to read and serve the file
+                  (let ((content (read-file-content final-path)))
+                    (if content
+                        (let ((mime-type (get-mime-type final-path)))
+                          (format-gemini-response 20 mime-type content))
+                        ;; File path resolved but can't be read or doesn't exist
+                        response/not-found)))))))
+      response/temporary-failure))
 
 ;;; Helper predicates for clean request analysis
 (define (non-gemini-scheme? request)
