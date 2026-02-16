@@ -11,6 +11,9 @@
             with-raw-gemini-request
             test-mime-types
             test-malformed-requests
+            assert-status-and-mime
+            assert-status-mime-and-body
+            assert-status-and-body-length
             gemini-response?
             gemini-response-status
             gemini-response-meta
@@ -127,3 +130,29 @@
                            (string-downcase (gemini-response-meta response)) 
                            meta-contains)))))))
     test-specs))
+
+;;; Helper: Assert status and MIME type match expected values
+(define (assert-status-and-mime response expected-status expected-mime test-desc)
+  "Verify response has expected status code and MIME type"
+  (test-equal (string-append test-desc " status") 
+             expected-status 
+             (gemini-response-status response))
+  (test-equal (string-append test-desc " MIME type")
+             expected-mime
+             (gemini-response-meta response)))
+
+;;; Helper: Assert status, MIME type, and body contains text
+(define (assert-status-mime-and-body response expected-status expected-mime contains-text test-desc)
+  "Verify response has expected status, MIME type, and body contains text"
+  (assert-status-and-mime response expected-status expected-mime test-desc)
+  (test-assert (string-append test-desc " body contains text")
+              (string-contains (gemini-response-body response) contains-text)))
+
+;;; Helper: Assert status and body length > 0
+(define (assert-status-and-body-length response expected-status test-desc)
+  "Verify response has expected status and non-empty body"
+  (test-equal (string-append test-desc " status")
+             expected-status
+             (gemini-response-status response))
+  (test-assert (string-append test-desc " has body content")
+              (> (string-length (gemini-response-body response)) 0)))

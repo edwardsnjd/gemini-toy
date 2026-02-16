@@ -16,7 +16,19 @@
             validate-request
             trim-crlf
             valid-gemini-uri?
-            normalize-empty-path))
+            normalize-empty-path
+            error-response
+            response/success
+            response/temporary-failure
+            response/permanent-failure
+            response/redirect
+            response/client-cert-required
+            response/cert-not-authorized
+            response/cert-not-valid
+            response/request-too-long
+            response/bad-request
+            response/not-found
+            response/non-gemini-scheme))
 
 ;;; Check if URI meets Gemini protocol requirements
 (define (valid-gemini-uri? uri)
@@ -48,6 +60,24 @@
 ;;; Helper to trim CRLF line endings
 (define (trim-crlf request-line)
   (string-trim-right request-line (char-set #\newline #\return)))
+
+;;; Error response builder - creates properly formatted error responses
+(define (error-response code meta)
+  "Build a Gemini error response with code and meta string"
+  (format-gemini-response code meta #f))
+
+;;; Predefined error responses (Gemini Status Codes)
+(define response/success (lambda () "20 text/gemini; charset=utf-8"))
+(define response/temporary-failure (lambda () (error-response 40 "Temporary Failure")))
+(define response/permanent-failure (lambda () (error-response 50 "Permanent Failure")))
+(define response/redirect (lambda (url) (error-response 30 url)))
+(define response/client-cert-required (lambda () (error-response 60 "Client Certificate Required")))
+(define response/cert-not-authorized (lambda () (error-response 61 "Certificate Not Authorized")))
+(define response/cert-not-valid (lambda () (error-response 62 "Certificate Not Valid")))
+(define response/request-too-long (lambda () (error-response 59 "Request too long")))
+(define response/bad-request (lambda () (error-response 59 "Bad Request")))
+(define response/not-found (lambda () (error-response 51 "Not Found")))
+(define response/non-gemini-scheme (lambda () (error-response 59 "Only gemini:// URIs supported")))
 
 ;;; Format a Gemini response according to protocol specification  
 (define (format-gemini-response status-code meta body)

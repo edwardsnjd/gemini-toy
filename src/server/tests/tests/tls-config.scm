@@ -5,29 +5,15 @@
   #:use-module (srfi srfi-64)
   #:use-module (ice-9 textual-ports)  ; For get-string-all
   #:use-module (gemini tls-config)
-  #:use-module (ice-9 ftw))
-
-;;; Helper: generate real test certificates using openssl
-(define (generate-test-certs cert-file key-file)
-  (zero? (system* "openssl" "req" "-x509" "-newkey" "rsa:2048"
-                   "-keyout" key-file "-out" cert-file
-                   "-days" "1" "-nodes" "-subj" "/CN=test"
-                   "-batch")))
+  #:use-module (ice-9 ftw)
+  #:use-module (tests test-utils))
 
 ;;; Test suite for certificate validation and loading
 (test-begin "certificate-validation")
 
-(test-equal "valid certificate files can be loaded"
-  #t
-  (let ((cert-file "/tmp/test-cert.pem")
-        (key-file "/tmp/test-key.pem"))
-    ;; Generate real test certificates
-    (generate-test-certs cert-file key-file)
-    (let ((result (load-certificates cert-file key-file)))
-      ;; Clean up test files
-      (delete-file cert-file)
-      (delete-file key-file)
-      (if result #t #f))))
+(test-assert "valid certificate files can be loaded"
+  (with-temp-cert-files (cert key)
+    (load-certificates cert key)))
 
 (test-equal "missing certificate file returns error"
   #f
@@ -35,20 +21,8 @@
 
 (test-equal "certificate file without proper PEM format fails"
   #f
-  (let ((cert-file "/tmp/invalid-cert.pem")
-        (key-file "/tmp/invalid-key.pem"))
-    ;; Create invalid cert and key files
-    (call-with-output-file cert-file
-      (lambda (port)
-        (display "not a certificate" port)))
-    (call-with-output-file key-file
-      (lambda (port)
-        (display "not a private key" port)))
-    (let ((result (load-certificates cert-file key-file)))
-      ;; Clean up test files
-      (delete-file cert-file)
-      (delete-file key-file)
-      (if result #t #f))))
+  (with-temp-cert-files-invalid (cert key "not a certificate" "not a private key")
+    (load-certificates cert key)))
 
 (test-equal "directory path instead of file fails"
   #f
@@ -59,17 +33,9 @@
 ;;; Test suite for TLS context setup
 (test-begin "tls-context")
 
-(test-equal "TLS context setup with valid certificates succeeds"
-  #t
-  (let ((cert-file "/tmp/test-cert.pem")
-        (key-file "/tmp/test-key.pem"))
-    ;; Generate real test certificates
-    (generate-test-certs cert-file key-file)
-    (let ((ctx (setup-tls-context cert-file key-file)))
-      ;; Clean up test files
-      (delete-file cert-file)
-      (delete-file key-file)
-      (if ctx #t #f))))
+(test-assert "TLS context setup with valid certificates succeeds"
+  (with-temp-cert-files (cert key)
+    (setup-tls-context cert key)))
 
 (test-equal "TLS context setup with missing files fails"
   #f
@@ -77,65 +43,47 @@
 
 (test-equal "TLS context setup with invalid certificates fails"
   #f
-  (let ((cert-file "/tmp/invalid-cert.pem")
-        (key-file "/tmp/invalid-key.pem"))
-    ;; Create invalid files
-    (call-with-output-file cert-file
-      (lambda (port)
-        (display "not a certificate" port)))
-    (call-with-output-file key-file
-      (lambda (port)
-        (display "not a private key" port)))
-    (let ((ctx (setup-tls-context cert-file key-file)))
-      ;; Clean up test files
-      (delete-file cert-file)
-      (delete-file key-file)
-      (if ctx #t #f))))
+  (with-temp-cert-files-invalid (cert key "not a certificate" "not a private key")
+    (setup-tls-context cert key)))
 
 (test-end "tls-context")
 
 ;;; Test suite for self-signed certificate generation
 (test-begin "cert-generation")
 
-(test-equal "self-signed certificate generation creates files"
-  #t
+(test-assert "self-signed certificate generation creates files"
   (let ((cert-file "/tmp/generated-cert.pem")
         (key-file "/tmp/generated-key.pem"))
-    ;; Remove files if they exist
-    (when (file-exists? cert-file) (delete-file cert-file))
-    (when (file-exists? key-file) (delete-file key-file))
-    (let ((result (generate-self-signed-cert cert-file key-file)))
-      (let ((files-exist (and (file-exists? cert-file) (file-exists? key-file))))
-        ;; Clean up generated files
+    (dynamic-wind
+      (lambda ()
         (when (file-exists? cert-file) (delete-file cert-file))
-        (when (file-exists? key-file) (delete-file key-file))
-        (and result files-exist)))))
+        (when (file-exists? key-file) (delete-file key-file)))
+      (lambda ()
+        (let ((result (generate-self-signed-cert cert-file key-file)))
+          (and result (file-exists? cert-file) (file-exists? key-file))))
+      (lambda ()
+        (when (file-exists? cert-file) (delete-file cert-file))
+        (when (file-exists? key-file) (delete-file key-file))))))
 
 (test-equal "certificate generation with invalid path fails"
   #f
   (generate-self-signed-cert "/invalid/path/cert.pem" "/invalid/path/key.pem"))
 
-(test-equal "certificate generation overwrites existing files"
-  #t
+(test-assert "certificate generation overwrites existing files"
   (let ((cert-file "/tmp/existing-cert.pem")
         (key-file "/tmp/existing-key.pem"))
-    ;; Create existing files with different content
-    (call-with-output-file cert-file
-      (lambda (port)
-        (display "old certificate" port)))
-    (call-with-output-file key-file
-      (lambda (port)
-        (display "old key" port)))
-    (let ((result (generate-self-signed-cert cert-file key-file)))
-      ;; Check if files were overwritten (should have different content)
-      (let ((new-cert-content (call-with-input-file cert-file get-string-all))
-            (new-key-content (call-with-input-file key-file get-string-all)))
-        ;; Clean up
+    (dynamic-wind
+      (lambda ()
+        (call-with-output-file cert-file (lambda (p) (display "old certificate" p)))
+        (call-with-output-file key-file (lambda (p) (display "old key" p))))
+      (lambda ()
+        (let ((result (generate-self-signed-cert cert-file key-file)))
+          (and result 
+               (not (string=? (call-with-input-file cert-file get-string-all) "old certificate"))
+               (not (string=? (call-with-input-file key-file get-string-all) "old key")))))
+      (lambda ()
         (delete-file cert-file)
-        (delete-file key-file)
-        (and result 
-             (not (string=? new-cert-content "old certificate"))
-             (not (string=? new-key-content "old key")))))))
+        (delete-file key-file)))))
 
 (test-end "cert-generation")
 

@@ -11,7 +11,7 @@
             or-map-handlers
             non-empty-string?
             valid-port?
-            file-readable?))
+            file-is-readable-regular-file?))
 
 ;;; Safe operation wrapper - replaces repetitive catch patterns
 (define-syntax-rule (safe-operation body ...)
@@ -39,7 +39,7 @@
 (define (valid-port? port)
   (and (number? port) (< 0 port 65536)))
 
-(define (file-readable? filename)
+(define (file-is-readable-regular-file? filename)
   (safe-operation
     (and (file-exists? filename)
          (not (eq? 'directory (stat:type (stat filename))))

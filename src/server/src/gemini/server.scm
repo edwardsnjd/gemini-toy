@@ -168,21 +168,21 @@
 (define (validate-request-handler request static-dir)
   (and (not (validate-request request))
        (cond
-         ((> (string-length request) 1024) "59 Request too long\r\n")
-         ((non-gemini-scheme? request) "59 Only gemini:// URIs supported\r\n")
-         (else "59 Bad Request\r\n"))))
+         ((> (string-length request) 1024) (response/request-too-long))
+         ((non-gemini-scheme? request) (response/non-gemini-scheme))
+         (else (response/bad-request)))))
 
 ;;; Handler 2: URI parsing with error detection
 (define (parse-uri-handler request static-dir)
   (let ((uri (parse-gemini-request request)))
     (and (or (not uri) (path-traversal-attempt? (uri-path uri)))
          (if (non-gemini-scheme? request)
-             "59 Only gemini:// URIs supported\r\n"
-             "59 Bad Request\r\n"))))
+             (response/non-gemini-scheme)
+             (response/bad-request)))))
 
 ;;; Handler 3: File serving with proper error handling
 (define (serve-file-handler request static-dir)
-  (error-or "40 Temporary Failure\r\n"
+  (error-or (response/temporary-failure)
     (and-let* ((uri (parse-gemini-request request))
                (safe-path (resolve-file-path static-dir (uri-path uri)))
                (final-path (resolve-directory-index safe-path))
@@ -237,6 +237,32 @@
 (define (process-request request-line static-dir)
   (or-map-handlers request-handlers request-line static-dir))
 
+;;; Check if static directory exists and accessible
+(define (check-static-dir-exists static-dir)
+  (if (not (file-exists? static-dir))
+      (begin
+        (log-message "ERROR" "Static directory '~a' does not exist" static-dir)
+        (exit 1))
+      #t))
+
+;;; Check or generate TLS certificates
+(define (check-or-generate-certs cert-file key-file)
+  (let ((certs-available (or (and (file-exists? cert-file) (file-exists? key-file))
+                            (begin
+                              (log-message "INFO" "Generating self-signed certificate...")
+                              (generate-self-signed-cert cert-file key-file)))))
+    (unless certs-available
+      (log-message "ERROR" "Could not load or generate TLS certificates")
+      (exit 1))
+    #t))
+
+;;; Log server startup configuration
+(define (log-startup-config port dir cert key)
+  (log-message "INFO" "Starting Gemini server on port ~a" port)
+  (log-message "INFO" "Serving files from: ~a" dir)
+  (log-message "INFO" "Using certificate: ~a" cert)
+  (log-message "INFO" "Using private key: ~a" key))
+
 ;;; Start the Gemini server
 (define (start-server config)
   (let ((port (assq-ref config 'port))
@@ -244,27 +270,10 @@
         (cert-file (assq-ref config 'cert))
         (key-file (assq-ref config 'key)))
     
-    (log-message "INFO" "Starting Gemini server on port ~a" port)
-    (log-message "INFO" "Serving files from: ~a" static-dir)
-    (log-message "INFO" "Using certificate: ~a" cert-file)
-    (log-message "INFO" "Using private key: ~a" key-file)
-    
-    ;; Check if static directory exists
-    (if (not (file-exists? static-dir))
-        (begin
-          (log-message "ERROR" "Static directory '~a' does not exist" static-dir)
-          (exit 1))
-        ;; Check/generate certificates
-        (let ((certs-available (or (and (file-exists? cert-file) (file-exists? key-file))
-                                  (begin
-                                    (log-message "INFO" "Generating self-signed certificate...")
-                                    (generate-self-signed-cert cert-file key-file)))))
-          (if (not certs-available)
-              (begin
-                (log-message "ERROR" "Could not load or generate TLS certificates")
-                (exit 1))
-              ;; Start server loop
-              (server-loop port static-dir cert-file key-file))))))
+    (log-startup-config port static-dir cert-file key-file)
+    (check-static-dir-exists static-dir)
+    (check-or-generate-certs cert-file key-file)
+    (server-loop port static-dir cert-file key-file)))
 
 ;;; Handle a single client connection
 (define (handle-client client-session static-dir client-addr)

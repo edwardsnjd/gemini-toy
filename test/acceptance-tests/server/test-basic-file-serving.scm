@@ -12,22 +12,14 @@
   20
   (with-gemini-request "/test.txt"
     (lambda (response)
-      (test-equal "content type for text file" 
-                  "text/plain; charset=utf-8" 
-                  (gemini-response-meta response))
-      (test-assert "body contains content" 
-                   (> (string-length (gemini-response-body response)) 0))
+      (assert-status-and-body-length response 20 "text file")
       (gemini-response-status response))))
 
 (test-equal "gemini file serving" 
   20
   (with-gemini-request "/test.gmi"
     (lambda (response)
-      (test-equal "content type for gmi file" 
-                  "text/gemini; charset=utf-8" 
-                  (gemini-response-meta response))
-      (test-assert "gmi body contains content" 
-                   (> (string-length (gemini-response-body response)) 0))
+      (assert-status-and-body-length response 20 "gmi file")
       (gemini-response-status response))))
 
 (test-equal "root path handling"

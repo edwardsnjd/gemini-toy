@@ -11,12 +11,8 @@
             load-certificates
             generate-self-signed-cert))
 
-;;; Check if certificate/key file is accessible
-(define (certificate-file-accessible? filename)
-  (safe-operation
-    (and (file-exists? filename)
-         (not (eq? 'directory (stat:type (stat filename))))
-         (access? filename R_OK))))
+;;; Alias for imported file validation utility
+(define certificate-file-accessible? file-is-readable-regular-file?)
 
 ;;; Validate PEM format certificate/key content
 (define (validate-pem-format content cert?)

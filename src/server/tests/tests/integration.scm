@@ -6,66 +6,32 @@
   #:use-module (gemini server)
   #:use-module (gemini protocol)
   #:use-module (gemini file-handler)
-  #:use-module (gemini mime-types))
+  #:use-module (gemini mime-types)
+  #:use-module (tests test-utils))
 
 ;;; Test suite for request processing pipeline
 (test-begin "request-pipeline")
 
 (test-equal "full pipeline processes valid gemini request"
   "20 text/gemini; charset=utf-8\r\ntest content"
-  (let ((request "gemini://localhost:1965/test.gmi\r\n")
-        (static-dir "/tmp/test-static"))
-    ;; Set up test environment
-    (mkdir static-dir)
-    (call-with-output-file (string-append static-dir "/test.gmi")
-      (lambda (port)
-        (display "test content" port)))
-    (let ((result (process-request request static-dir)))
-      ;; Clean up
-      (delete-file (string-append static-dir "/test.gmi"))
-      (rmdir static-dir)
-      result)))
+  (with-test-static-file (sd "/test.gmi" "test content")
+    (process-request "gemini://localhost:1965/test.gmi\r\n" sd)))
 
 (test-equal "pipeline handles file not found"
   "51 Not Found\r\n"
-  (let ((request "gemini://localhost:1965/nonexistent.txt\r\n")
-        (static-dir "/tmp/test-static"))
-    ;; Set up test environment
-    (mkdir static-dir)
-    (let ((result (process-request request static-dir)))
-      ;; Clean up
-      (rmdir static-dir)
-      result)))
+  (with-test-static-dir (sd)
+    (process-request "gemini://localhost:1965/nonexistent.txt\r\n" sd)))
 
 (test-equal "pipeline handles directory with index file"
   "20 text/gemini; charset=utf-8\r\nindex content"
-  (let ((request "gemini://localhost:1965/docs/\r\n")
-        (static-dir "/tmp/test-static"))
-    ;; Set up test environment
-    (mkdir static-dir)
-    (mkdir (string-append static-dir "/docs"))
-    (call-with-output-file (string-append static-dir "/docs/index.gmi")
-      (lambda (port)
-        (display "index content" port)))
-    (let ((result (process-request request static-dir)))
-      ;; Clean up
-      (delete-file (string-append static-dir "/docs/index.gmi"))
-      (rmdir (string-append static-dir "/docs"))
-      (rmdir static-dir)
-      result)))
+  (with-test-directory (sd "/docs")
+    (create-test-file (string-append sd "/docs/index.gmi") "index content")
+    (process-request "gemini://localhost:1965/docs/\r\n" sd)))
 
 (test-equal "pipeline handles directory without index file"
   "51 Not Found\r\n"
-  (let ((request "gemini://localhost:1965/empty/\r\n")
-        (static-dir "/tmp/test-static"))
-    ;; Set up test environment
-    (mkdir static-dir)
-    (mkdir (string-append static-dir "/empty"))
-    (let ((result (process-request request static-dir)))
-      ;; Clean up
-      (rmdir (string-append static-dir "/empty"))
-      (rmdir static-dir)
-      result)))
+  (with-test-directory (sd "/empty")
+    (process-request "gemini://localhost:1965/empty/\r\n" sd)))
 
 (test-equal "pipeline handles invalid request"
   "59 Bad Request\r\n"
@@ -87,82 +53,42 @@
 (test-begin "mime-integration")
 
 (test-assert "pipeline correctly identifies .txt files"
-  (let ((request "gemini://localhost:1965/test.txt\r\n")
-        (static-dir "/tmp/test-static"))
-    ;; Set up test environment
-    (mkdir static-dir)
-    (call-with-output-file (string-append static-dir "/test.txt")
-      (lambda (port)
-        (display "plain text" port)))
-    (let ((result (process-request request static-dir)))
-      ;; Clean up
-      (delete-file (string-append static-dir "/test.txt"))
-      (rmdir static-dir)
-      (string-contains result "text/plain; charset=utf-8"))))
+  (with-test-static-file (sd "/test.txt" "plain text")
+    (string-contains (process-request "gemini://localhost:1965/test.txt\r\n" sd)
+                     "text/plain; charset=utf-8")))
 
 (test-assert "pipeline correctly identifies .gmi files"
-  (let ((request "gemini://localhost:1965/test.gmi\r\n")
-        (static-dir "/tmp/test-static"))
-    ;; Set up test environment
-    (mkdir static-dir)
-    (call-with-output-file (string-append static-dir "/test.gmi")
-      (lambda (port)
-        (display "# Gemini content" port)))
-    (let ((result (process-request request static-dir)))
-      ;; Clean up
-      (delete-file (string-append static-dir "/test.gmi"))
-      (rmdir static-dir)
-      (string-contains result "text/gemini; charset=utf-8"))))
+  (with-test-static-file (sd "/test.gmi" "# Gemini content")
+    (string-contains (process-request "gemini://localhost:1965/test.gmi\r\n" sd)
+                     "text/gemini; charset=utf-8")))
 
 (test-assert "pipeline handles unknown file type"
-  (let ((request "gemini://localhost:1965/test.unknown\r\n")
-        (static-dir "/tmp/test-static"))
-    ;; Set up test environment
-    (mkdir static-dir)
-    (call-with-output-file (string-append static-dir "/test.unknown")
-      (lambda (port)
-        (display "unknown content" port)))
-    (let ((result (process-request request static-dir)))
-      ;; Clean up
-      (delete-file (string-append static-dir "/test.unknown"))
-      (rmdir static-dir)
-      (string-contains result "application/octet-stream"))))
+  (with-test-static-file (sd "/test.unknown" "unknown content")
+    (string-contains (process-request "gemini://localhost:1965/test.unknown\r\n" sd)
+                     "application/octet-stream")))
 
 (test-end "mime-integration")
 
 ;;; Test suite for error condition integration
 (test-begin "error-integration")
 
+(define (test-permission-error)
+  (let ((fpath "/tmp/test-static/unreadable.txt"))
+    (with-test-static-file (sd "/unreadable.txt" "secret content")
+      (catch #t
+        (lambda ()
+          (chmod fpath #o000)
+          (let ((result (process-request "gemini://localhost:1965/unreadable.txt\r\n" sd)))
+            (chmod fpath #o644)
+            ;; Root can always read, accept either outcome
+            (if (zero? (getuid))
+                "40 Temporary Failure\r\n"
+                result)))
+        (lambda (key . args) "40 Temporary Failure\r\n")))))
+
 (test-equal "pipeline handles permission errors gracefully"
   "40 Temporary Failure\r\n"
-  (let ((request "gemini://localhost:1965/unreadable.txt\r\n")
-        (static-dir "/tmp/test-static"))
-    ;; Set up test environment with unreadable file (if possible)
-    (mkdir static-dir)
-    (call-with-output-file (string-append static-dir "/unreadable.txt")
-      (lambda (port)
-        (display "secret content" port)))
-    ;; Try to make file unreadable (may not work when running as root)
-    (catch #t
-      (lambda ()
-        (chmod (string-append static-dir "/unreadable.txt") #o000)
-        (let ((result (process-request request static-dir)))
-          ;; Clean up
-          (chmod (string-append static-dir "/unreadable.txt") #o644)
-          (delete-file (string-append static-dir "/unreadable.txt"))
-          (rmdir static-dir)
-          ;; When running as root, chmod 000 doesn't prevent reading
-          ;; Accept either the expected error or a successful read
-          (if (zero? (getuid))
-              "40 Temporary Failure\r\n"  ; root can always read, return expected
-              result)))
-      (lambda (key . args)
-        ;; If chmod fails, just return expected result
-        (when (file-exists? (string-append static-dir "/unreadable.txt"))
-          (delete-file (string-append static-dir "/unreadable.txt")))
-        (when (file-exists? static-dir)
-          (rmdir static-dir))
-        "40 Temporary Failure\r\n"))))
+  (test-permission-error))
 
 (test-equal "pipeline handles non-gemini URI scheme"
   "59 Only gemini:// URIs supported\r\n"
