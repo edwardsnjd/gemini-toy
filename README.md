@@ -6,37 +6,14 @@ A toy implementation of the [Gemini protocol](https://gemini.circumlunar.space/)
 
 Gemini is a lightweight internet protocol designed to be simpler than HTTP while more feature-rich than Gopher. It uses TLS encryption by default and serves text-based content using a simple markup format.
 
-## Quick Start
+## Security Considerations
 
-### Prerequisites
+⚠️ **Warning: This is a toy implementation!**
 
-- GNU Guile (version 3.0 or later recommended)
-- GnuTLS development libraries
-- OpenSSL (for certificate generation)
-
-On Ubuntu/Debian:
-```bash
-sudo apt-get install guile-3.0 guile-3.0-dev libgnutls28-dev openssl
-```
-
-On macOS with Homebrew:
-```bash
-brew install guile gnutls openssl
-```
-
-### Get Started in 2 Steps
-
-1. **Initialize the project:**
-   ```bash
-   make setup
-   ```
-
-2. **Start the server:**
-   ```bash
-   make run
-   ```
-
-The server will start on port 1965. Visit `gemini://localhost:1965/` to test it!
+- Not intended for production use
+- May have security vulnerabilities
+- Self-signed certificates are not trusted by default
+- No user authentication or access controls
 
 ## Make Commands
 
@@ -47,48 +24,47 @@ Use these simple commands to work with the project:
 | `make setup` | Install dependencies and initialize the project |
 | `make run` | Start the development server (port 1965) |
 | `make test` | Run all tests (unit, acceptance) |
-| `make build` | Build the Docker development container |
 | `make clean` | Remove build artifacts and logs |
-| `make help` | Show all available commands |
-| `make dev` | Run interactive development container |
+| `make build-devenv` | Build devenv image |
+| `make devenv` | Run devenv |
 
 ## Project Structure
 
 ```
 gemini-toy/
+├── doc/                     # Documentation
+│   ├── adr/                 # Architecture Decision Records
+│   └── TESTING.md           # Detailed testing guide
+├── openspec/                # OpenSpec format specs
 ├── src/                     # Application source code
 │   └── server/              # Server implementation
 │       ├── src/             # Core server modules (server.scm, etc.)
 │       ├── tests/           # Unit tests
-│       │   └── tests/       # Test modules
-│       ├── certs/           # TLS certificates
-│       └── run-unit-tests.scm
+│       └── certs/           # TLS certificates
 ├── test/                    # Testing files and utilities
 │   ├── acceptance-tests/    # Integration/acceptance tests
-│   │   └── server/          # Test scenarios
 │   └── test-content/        # Test static files
-├── doc/                     # Documentation
-│   ├── TESTING.md           # Detailed testing guide
-│   ├── adr/                 # Architecture Decision Records
-│   │   └── 0001-record-architecture-decisions.md
-│   └── MIGRATION.md         # Migration guide
 ├── scripts/                 # Utility and build scripts
-│   ├── start-server.sh      # Start development server
-│   ├── run-all-tests.sh     # Run complete test suite
-│   └── [other utilities]
 ├── Makefile                 # Project commands
-├── Dockerfile.dev           # Development container
-└── .opencode/               # OpenCode specification artifacts
+└── Dockerfile.dev           # Development container
 ```
 
 ## Running the Server
 
+### Prerequisites
+
+- GNU Guile (version 3.0 or later recommended)
+- GnuTLS development libraries
+- OpenSSL (for certificate generation)
+
 ### Using Make (Recommended)
+
 ```bash
 make run
 ```
 
 ### Using the Script Directly
+
 ```bash
 bash scripts/start-server.sh --help
 bash scripts/start-server.sh                          # Default: port 1965
@@ -97,6 +73,7 @@ bash scripts/start-server.sh --verbose               # Verbose output
 ```
 
 ### Manual Start (Advanced)
+
 ```bash
 cd src/server
 GUILE_LOAD_PATH=src guile src/gemini/server.scm -d ../../test/test-content
@@ -124,12 +101,14 @@ This project maintains comprehensive documentation:
 ## Running Tests
 
 ### Using Make
+
 ```bash
 make test           # Run all tests
 make clean          # Clean up test artifacts
 ```
 
 ### Using Scripts Directly
+
 ```bash
 bash scripts/run-all-tests.sh        # Complete test suite (recommended)
 bash scripts/run-unit-tests.sh       # Unit tests only (fast)
@@ -138,7 +117,7 @@ bash scripts/test-quick.sh           # Quick smoke test
 ```
 
 **Test Coverage:**
-- ✅ **Unit Tests**: 28 tests covering protocol parsing, validation, MIME types, file handling
+- ✅ **Unit Tests**: Tests covering protocol parsing, validation, MIME types, file handling
 - ✅ **Acceptance Tests**: Black-box testing with real TLS connections
 - ✅ **Security Tests**: Path traversal prevention, request validation, error handling
 - ✅ **Protocol Compliance**: Full Gemini specification compliance verification
@@ -156,7 +135,7 @@ Once the server is running, you can test it using:
    ```bash
    # Using openssl s_client
    echo "gemini://localhost/" | openssl s_client -connect localhost:1965 -servername localhost -quiet
-   
+
    # Using curl (if built with Gemini support)
    curl --proto '=gemini' gemini://localhost/
    ```
@@ -183,15 +162,6 @@ static/
 
 ## Development
 
-### TLS Certificate Management
-
-The server will automatically generate self-signed certificates if none are found:
-
-```bash
-# Use custom certificate files
-bash scripts/start-server.sh -c /path/to/cert.pem -k /path/to/key.pem
-```
-
 ### Using Docker
 
 Build the development container:
@@ -206,32 +176,14 @@ make dev
 
 This mounts the entire project into the container for development.
 
-## Security Considerations
+### TLS Certificate Management
 
-⚠️ **Warning: This is a toy implementation!**
+The server will automatically generate self-signed certificates if none are found:
 
-- Not intended for production use
-- May have security vulnerabilities
-- Self-signed certificates are not trusted by default
-- No user authentication or access controls
-
-For production use, consider established Gemini servers like:
-- Agate
-- Molly Brown
-- Titan
-- Jetforce
-
-## Contributing
-
-This project is primarily for educational purposes. However, if you find bugs or want to improve the implementation:
-
-1. Check existing issues
-2. Create a detailed bug report or feature request
-3. Submit pull requests with clear descriptions
-
-## License
-
-This project is provided as-is for educational purposes. See the repository for any specific license terms.
+```bash
+# Use custom certificate files
+bash scripts/start-server.sh -c /path/to/cert.pem -k /path/to/key.pem
+```
 
 ## Resources
 
@@ -239,9 +191,3 @@ This project is provided as-is for educational purposes. See the repository for 
 - [Gemini Software List](https://gemini.circumlunar.space/software/)
 - [GNU Guile Documentation](https://www.gnu.org/software/guile/manual/)
 - [GnuTLS Documentation](https://gnutls.org/manual/)
-
-## Support
-
-For questions about the Gemini protocol itself, visit the [Gemini community](https://gemini.circumlunar.space/).
-
-For issues with this specific implementation, please check the project's issue tracker or create a new issue with detailed information about your problem.
