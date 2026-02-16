@@ -21,9 +21,14 @@ Thumbs.db
 # Test results and coverage
 test-results/
 test-results.xml
+test-results*.txt
+*-test-results.txt
 coverage/
 *.coverage
 .nyc_output/
+docs/*TESTING_RESULTS*.md
+docs/*test-results*.txt
+docs/*testing-summary*.md
 
 # Build artifacts
 dist/
