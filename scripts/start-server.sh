@@ -8,13 +8,16 @@
 
 set -e
 
-cd "$(dirname "$0")"
+# Get the project root (parent of scripts directory)
+SCRIPT_DIR="$(dirname "$0")"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_ROOT"
 
 # Default configuration
 DEFAULT_PORT=1965
 DEFAULT_STATIC_DIR="static"
-DEFAULT_CERT="server/certs/cert.pem"
-DEFAULT_KEY="server/certs/key.pem"
+DEFAULT_CERT="src/server/certs/cert.pem"
+DEFAULT_KEY="src/server/certs/key.pem"
 
 # Colors
 GREEN='\033[0;32m'
@@ -103,8 +106,8 @@ if ! command -v guile &> /dev/null; then
     exit 1
 fi
 
-if [ ! -d "server" ]; then
-    echo -e "${RED}❌ Error: server directory not found${NC}"
+if [ ! -d "src/server" ]; then
+    echo -e "${RED}❌ Error: src/server directory not found${NC}"
     echo "   Run this script from the gemini-toy project root"
     exit 1
 fi
@@ -143,20 +146,20 @@ echo
 echo -e "${BLUE}🌐 Starting server...${NC}"
 echo "===================="
 
-cd server
+cd "$PROJECT_ROOT/src/server"
 
 if [ "$VERBOSE" = true ]; then
     echo -e "${YELLOW}💡 Starting in verbose mode (Ctrl+C to stop)${NC}"
     echo
-    GUILE_LOAD_PATH=src guile src/gemini/server.scm -p "$PORT" -d "../$STATIC_DIR" -c "../$CERT_FILE" -k "../$KEY_FILE"
+    GUILE_LOAD_PATH=src guile src/gemini/server.scm -p "$PORT" -d "../../$STATIC_DIR" -c "certs/cert.pem" -k "certs/key.pem"
 else
     echo -e "${YELLOW}💡 Starting server (Ctrl+C to stop)${NC}"
     echo -e "${YELLOW}   For verbose output, use: $0 --verbose${NC}"
-    echo -e "${YELLOW}   Server log: server/server.log${NC}"
+    echo -e "${YELLOW}   Server log: src/server/server.log${NC}"
     echo
     
     # Start server and capture PID for clean shutdown
-    GUILE_LOAD_PATH=src guile src/gemini/server.scm -p "$PORT" -d "../$STATIC_DIR" -c "../$CERT_FILE" -k "../$KEY_FILE" &
+    GUILE_LOAD_PATH=src guile src/gemini/server.scm -p "$PORT" -d "../../$STATIC_DIR" -c "certs/cert.pem" -k "certs/key.pem" &
     SERVER_PID=$!
     
     echo -e "${GREEN}✅ Server started with PID $SERVER_PID${NC}"
@@ -165,9 +168,9 @@ else
     echo "   echo 'gemini://localhost:$PORT/' | openssl s_client -connect localhost:$PORT -servername localhost -quiet"
     echo
     echo -e "${BLUE}💡 Useful commands:${NC}"
-    echo "   • View logs:     tail -f server/server.log"
+    echo "   • View logs:     tail -f src/server/server.log"
     echo "   • Stop server:   kill $SERVER_PID"
-    echo "   • Run tests:     ./run-all-tests.sh"
+    echo "   • Run tests:     make test"
     
     # Wait for server process
     wait $SERVER_PID

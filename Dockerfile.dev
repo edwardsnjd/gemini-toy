@@ -8,9 +8,11 @@ RUN apt-get update \
    curl \
    git \
    xz-utils \
+   make \
    nodejs \
    npm \
    guile-3.0 \
+   guile-gnutls \
  && rm -rf /var/lib/apt/lists/*
 
 RUN npm install -g @fission-ai/openspec@latest

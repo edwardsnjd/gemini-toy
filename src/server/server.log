@@ -1,0 +1,18 @@
+[2026-02-16 08:07:09] INFO: Starting Gemini server on port 1965
+[2026-02-16 08:07:09] INFO: Serving files from: ../../static
+[2026-02-16 08:07:09] INFO: Using certificate: certs/cert.pem
+[2026-02-16 08:07:09] INFO: Using private key: certs/key.pem
+[2026-02-16 08:07:09] INFO: Server listening on port 1965
+[2026-02-16 08:07:09] DEBUG: Waiting for connections...
+[2026-02-16 08:07:12] INFO: Client connected from unknown
+[2026-02-16 08:07:12] ERROR: TLS error with client unknown: wrong-type-arg (#f Wrong type (expecting ~A): ~S (exact integer #<input-output: socket 10>) (#<input-output: socket 10>))
+[2026-02-16 08:07:12] DEBUG: Waiting for connections...
+[2026-02-16 08:07:13] INFO: Client connected from unknown
+[2026-02-16 08:07:13] ERROR: TLS error with client unknown: wrong-type-arg (#f Wrong type (expecting ~A): ~S (exact integer #<input-output: socket 10>) (#<input-output: socket 10>))
+[2026-02-16 08:07:13] DEBUG: Waiting for connections...
+[2026-02-16 08:07:13] INFO: Client connected from unknown
+[2026-02-16 08:07:13] ERROR: TLS error with client unknown: wrong-type-arg (#f Wrong type (expecting ~A): ~S (exact integer #<input-output: socket 10>) (#<input-output: socket 10>))
+[2026-02-16 08:07:13] DEBUG: Waiting for connections...
+[2026-02-16 08:07:13] INFO: Client connected from unknown
+[2026-02-16 08:07:13] ERROR: TLS error with client unknown: wrong-type-arg (#f Wrong type (expecting ~A): ~S (exact integer #<input-output: socket 10>) (#<input-output: socket 10>))
+[2026-02-16 08:07:13] DEBUG: Waiting for connections...

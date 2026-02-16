@@ -6,21 +6,6 @@ A toy implementation of the [Gemini protocol](https://gemini.circumlunar.space/)
 
 Gemini is a lightweight internet protocol designed to be simpler than HTTP while more feature-rich than Gopher. It uses TLS encryption by default and serves text-based content using a simple markup format.
 
-## Project Structure
-
-```
-gemini-toy/
-├── server/                 # Server implementation
-│   ├── src/gemini/        # Core server modules
-│   ├── tests/             # Unit tests
-│   ├── certs/             # TLS certificates
-│   └── run-unit-tests.scm # Unit test runner
-├── acceptance-tests/      # Integration/acceptance tests
-├── test-content/         # Test static files
-├── static/              # Default static files directory
-└── doc/                 # Additional documentation
-```
-
 ## Quick Start
 
 ### Prerequisites
@@ -39,82 +24,107 @@ On macOS with Homebrew:
 brew install guile gnutls openssl
 ```
 
-### Quick Start Scripts
+### Get Started in 2 Steps
 
-For convenience, use these scripts to run common tasks:
+1. **Initialize the project:**
+   ```bash
+   make setup
+   ```
 
-```bash
-# Show all available commands
-./help.sh
+2. **Start the server:**
+   ```bash
+   make run
+   ```
 
-# Start the server (easiest way)
-./start-server.sh
+The server will start on port 1965. Visit `gemini://localhost:1965/` to test it!
 
-# Run all tests
-./run-all-tests.sh
+## Make Commands
 
-# Quick development test
-./test-quick.sh
+Use these simple commands to work with the project:
 
-# Unit tests only
-./run-unit-tests.sh
+| Command | Description |
+|---------|-------------|
+| `make setup` | Install dependencies and initialize the project |
+| `make run` | Start the development server (port 1965) |
+| `make test` | Run all tests (unit, acceptance) |
+| `make build` | Build the Docker development container |
+| `make clean` | Remove build artifacts and logs |
+| `make help` | Show all available commands |
+| `make dev` | Run interactive development container |
 
-# Acceptance tests only  
-./run-acceptance-tests.sh
+## Project Structure
+
+```
+gemini-toy/
+├── src/                     # Application source code
+│   └── server/              # Server implementation
+│       ├── src/gemini/      # Core server modules
+│       ├── tests/           # Unit tests
+│       ├── certs/           # TLS certificates
+│       └── run-unit-tests.scm
+├── test/                    # Testing files and utilities
+│   ├── acceptance-tests/    # Integration/acceptance tests
+│   └── test-content/        # Test static files
+├── docs/                    # Documentation
+│   ├── TESTING.md          # Detailed testing guide
+│   ├── ERROR_TESTING_SUMMARY.md
+│   └── doc_old/            # Legacy documentation
+├── scripts/                 # Utility and build scripts
+│   ├── start-server.sh      # Start development server
+│   ├── run-all-tests.sh     # Run complete test suite
+│   └── [other utilities]
+├── static/                  # Default static files served by server
+├── Makefile                 # Project commands
+├── Dockerfile.dev           # Development container
+└── .opencode/              # OpenCode specification artifacts
 ```
 
-### Running the Server
+## Running the Server
 
-1. **Start with default settings:**
-   ```bash
-   ./start-server.sh
-   ```
+### Using Make (Recommended)
+```bash
+make run
+```
 
-2. **Start with custom options:**
-   ```bash
-   ./start-server.sh -p 1966 -d static --verbose
-   ```
+### Using the Script Directly
+```bash
+bash scripts/start-server.sh --help
+bash scripts/start-server.sh                          # Default: port 1965
+bash scripts/start-server.sh -p 1966 -d static       # Custom port and directory
+bash scripts/start-server.sh --verbose               # Verbose output
+```
 
-3. **Manual start (advanced):**
-   ```bash
-   cd server
-   GUILE_LOAD_PATH=src guile src/gemini/server.scm -d ../static
-   ```
+### Manual Start (Advanced)
+```bash
+cd src/server
+GUILE_LOAD_PATH=src guile src/gemini/server.scm -d ../../static
+```
 
-4. **View available options:**
-   ```bash
-   ./start-server.sh --help
-   ```
-
-## Command Line Options
+## Server Options
 
 | Option | Short | Default | Description |
 |--------|-------|---------|-------------|
 | `--port` | `-p` | `1965` | Port to listen on |
 | `--static-dir` | `-d` | `./static` | Directory to serve static files from |
-| `--cert` | `-c` | `server/certs/cert.pem` | TLS certificate file |
-| `--key` | `-k` | `server/certs/key.pem` | TLS private key file |
+| `--cert` | `-c` | `src/server/certs/cert.pem` | TLS certificate file |
+| `--key` | `-k` | `src/server/certs/key.pem` | TLS private key file |
 | `--help` | `-h` | - | Show help message |
-| `--version` | `-v` | - | Show version information |
+| `--verbose` | `-v` | - | Enable verbose output |
 
-## Usage Examples
+## Running Tests
 
-### Testing
-
-The project includes comprehensive tests with convenient scripts:
-
+### Using Make
 ```bash
-# Complete test suite (recommended)
-./run-all-tests.sh
+make test           # Run all tests
+make clean          # Clean up test artifacts
+```
 
-# Quick smoke test during development
-./test-quick.sh
-
-# Unit tests only (fast)
-./run-unit-tests.sh
-
-# Acceptance/integration tests only
-./run-acceptance-tests.sh
+### Using Scripts Directly
+```bash
+bash scripts/run-all-tests.sh        # Complete test suite (recommended)
+bash scripts/run-unit-tests.sh       # Unit tests only (fast)
+bash scripts/run-acceptance-tests.sh # Integration tests only
+bash scripts/test-quick.sh           # Quick smoke test
 ```
 
 **Test Coverage:**
@@ -122,38 +132,6 @@ The project includes comprehensive tests with convenient scripts:
 - ✅ **Acceptance Tests**: Black-box testing with real TLS connections
 - ✅ **Security Tests**: Path traversal prevention, request validation, error handling
 - ✅ **Protocol Compliance**: Full Gemini specification compliance verification
-
-### Basic Usage
-
-```bash
-# Start server on default port 1965
-./start-server.sh
-
-# Start on port 1966
-./start-server.sh --port 1966
-
-# Serve files from custom directory
-./start-server.sh --dir /path/to/my/content
-```
-
-### TLS Certificate Management
-
-The server will automatically generate self-signed certificates if none are found:
-
-```bash
-# Use custom certificate files
-guile server.scm --cert /path/to/cert.pem --key /path/to/key.pem
-```
-
-### Development Setup
-
-```bash
-# Navigate to server source
-cd server/src/gemini/
-
-# Start development server
-guile server.scm --port 1966 --static-dir ../../../test-content
-```
 
 ## Testing Your Server
 
@@ -192,6 +170,31 @@ static/
 └── files/
     └── document.pdf   # Binary file
 ```
+
+## Development
+
+### TLS Certificate Management
+
+The server will automatically generate self-signed certificates if none are found:
+
+```bash
+# Use custom certificate files
+bash scripts/start-server.sh -c /path/to/cert.pem -k /path/to/key.pem
+```
+
+### Using Docker
+
+Build the development container:
+```bash
+make build
+```
+
+Run an interactive session:
+```bash
+make dev
+```
+
+This mounts the entire project into the container for development.
 
 ## Security Considerations
 

@@ -9,7 +9,10 @@
 
 set -e
 
-cd "$(dirname "$0")"
+# Get the project root (parent of scripts directory)
+SCRIPT_DIR="$(dirname "$0")"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_ROOT"
 
 echo "🧪 Running Gemini Server Unit Tests..."
 echo "========================================"
@@ -22,8 +25,8 @@ if ! command -v guile &> /dev/null; then
 fi
 
 # Check if server directory exists
-if [ ! -d "server" ]; then
-    echo "❌ Error: server directory not found"
+if [ ! -d "src/server" ]; then
+    echo "❌ Error: src/server directory not found"
     echo "   Run this script from the gemini-toy project root"
     exit 1
 fi
@@ -33,13 +36,13 @@ echo "📂 Running from: $(pwd)"
 echo "🔧 Using Guile: $(guile --version | head -1)"
 echo
 
-cd server
+cd src/server
 GUILE_LOAD_PATH=src:tests guile run-unit-tests.scm
 
 echo
 echo "✅ Unit tests completed!"
 echo
 echo "💡 Tips:"
-echo "   • To run individual test modules: cd server && GUILE_LOAD_PATH=src:tests guile -c \"(use-modules (tests protocol-parser))\""
+echo "   • To run individual test modules: cd src/server && GUILE_LOAD_PATH=src:tests guile -c \"(use-modules (tests protocol-parser))\""
 echo "   • To run with verbose output: remove '2>/dev/null' from the commands above"
-echo "   • Test files are located in: server/tests/tests/"
+echo "   • Test files are located in: src/server/tests/tests/"

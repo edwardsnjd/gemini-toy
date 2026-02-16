@@ -9,7 +9,10 @@
 
 set -e
 
-cd "$(dirname "$0")"
+# Get the project root (parent of scripts directory)
+SCRIPT_DIR="$(dirname "$0")"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_ROOT"
 
 # Configuration
 SERVER_PORT=1965
@@ -65,10 +68,10 @@ echo
 echo -e "${BLUE}🌐 Starting Gemini server on port $SERVER_PORT...${NC}"
 echo "📂 Serving from: $STATIC_DIR"
 
-cd server
-GUILE_LOAD_PATH=src guile src/gemini/server.scm -d "../$STATIC_DIR" -p $SERVER_PORT -c certs/cert.pem -k certs/key.pem > server.log 2>&1 &
+cd src/server
+GUILE_LOAD_PATH=src guile src/gemini/server.scm -d "../../$STATIC_DIR" -p $SERVER_PORT -c certs/cert.pem -k certs/key.pem > server.log 2>&1 &
 SERVER_PID=$!
-cd ..
+cd ../..
 
 # Wait for server to start
 echo "⏳ Waiting for server to initialize..."
@@ -77,7 +80,7 @@ sleep 3
 # Check if server is running
 if ! kill -0 $SERVER_PID 2>/dev/null; then
     echo -e "${RED}❌ Server failed to start. Check server.log for details:${NC}"
-    cat server/server.log
+    cat src/server/server.log
     exit 1
 fi
 
@@ -88,7 +91,7 @@ if timeout 5 bash -c "</dev/tcp/localhost/$SERVER_PORT" 2>/dev/null; then
 else
     echo -e "${RED}❌ Cannot connect to server on port $SERVER_PORT${NC}"
     echo "Server log:"
-    cat server/server.log
+    cat src/server/server.log
     exit 1
 fi
 
@@ -97,15 +100,15 @@ echo -e "${BLUE}🧪 Running acceptance tests...${NC}"
 echo "================================"
 
 # Method 1: Try running structured acceptance tests
-if [ -f "acceptance-tests/run-acceptance-tests.scm" ]; then
+if [ -f "test/acceptance-tests/run-acceptance-tests.scm" ]; then
     echo "📋 Running structured acceptance test suite..."
-    cd acceptance-tests
-    if GUILE_LOAD_PATH=../server/src:. timeout $TEST_TIMEOUT guile run-acceptance-tests.scm; then
+    cd test/acceptance-tests
+    if GUILE_LOAD_PATH=../../src/server/src:. timeout $TEST_TIMEOUT guile run-acceptance-tests.scm; then
         echo -e "${GREEN}✅ Structured acceptance tests completed${NC}"
     else
         echo -e "${YELLOW}⚠️  Structured acceptance tests had issues (expected - may need server fixes)${NC}"
     fi
-    cd ..
+    cd ../..
 else
     echo -e "${YELLOW}ℹ️  Structured acceptance tests not available${NC}"
 fi
@@ -147,7 +150,7 @@ echo -e "${BLUE}💡 Manual testing commands:${NC}"
 echo "  • Basic request:     echo 'gemini://localhost:$SERVER_PORT/' | openssl s_client -connect localhost:$SERVER_PORT -servername localhost -quiet"
 echo "  • Test file:         echo 'gemini://localhost:$SERVER_PORT/test.txt' | openssl s_client -connect localhost:$SERVER_PORT -servername localhost -quiet"
 echo "  • Error test:        echo 'gemini://localhost:$SERVER_PORT/missing' | openssl s_client -connect localhost:$SERVER_PORT -servername localhost -quiet"
-echo "  • Server log:        tail -f server/server.log"
+echo "  • Server log:        tail -f src/server/server.log"
 echo
 echo -e "${BLUE}📊 Test Summary:${NC}"
 echo "  • Server started successfully on port $SERVER_PORT"
