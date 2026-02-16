@@ -65,18 +65,18 @@ gemini-toy/
 ├── test/                    # Testing files and utilities
 │   ├── acceptance-tests/    # Integration/acceptance tests
 │   └── test-content/        # Test static files
-├── docs/                    # Documentation
-│   ├── TESTING.md          # Detailed testing guide
-│   ├── adr/                # Architecture Decision Records
+├── doc/                     # Documentation
+│   ├── TESTING.md           # Detailed testing guide
+│   ├── adr/                 # Architecture Decision Records
 │   │   └── 0001-record-architecture-decisions.md
-│   └── MIGRATION.md        # Migration guide
+│   └── MIGRATION.md         # Migration guide
 ├── scripts/                 # Utility and build scripts
 │   ├── start-server.sh      # Start development server
 │   ├── run-all-tests.sh     # Run complete test suite
 │   └── [other utilities]
 ├── Makefile                 # Project commands
 ├── Dockerfile.dev           # Development container
-└── .opencode/              # OpenCode specification artifacts
+└── .opencode/               # OpenCode specification artifacts
 ```
 
 ## Running the Server
@@ -115,9 +115,9 @@ GUILE_LOAD_PATH=src guile src/gemini/server.scm -d ../../static
 
 This project maintains comprehensive documentation:
 
-- **[TESTING.md](docs/TESTING.md)** - Testing guide with test organization and procedures
-- **[Architecture Decision Records](docs/adr/)** - Design decisions and rationale for the project
-- **[MIGRATION.md](docs/MIGRATION.md)** - Project evolution and migration notes
+- **[TESTING.md](doc/TESTING.md)** - Testing guide with test organization and procedures
+- **[Architecture Decision Records](doc/adr/)** - Design decisions and rationale for the project
+- **[MIGRATION.md](doc/MIGRATION.md)** - Project evolution and migration notes
 
 ## Running Tests
 
