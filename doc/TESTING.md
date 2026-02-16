@@ -8,20 +8,23 @@ The project uses a two-tier testing approach:
 
 ```
 gemini-toy/
-├── server/
-│   ├── tests/                    # Unit tests
-│   │   ├── tests/
-│   │   │   ├── protocol-parser.scm
-│   │   │   ├── cli-args.scm
-│   │   │   ├── mime-types.scm
-│   │   │   ├── file-handler.scm
-│   │   │   ├── tls-config.scm
-│   │   │   └── integration.scm
-│   │   └── run-unit-tests.scm    # Unit test runner
-├── acceptance-tests/             # Integration/black-box tests
-│   ├── server/                   # Test scenarios
-│   └── run-acceptance-tests.scm  # Acceptance test runner
-└── test-content/                 # Test static files
+├── src/
+│   └── server/
+│       ├── tests/                    # Unit tests
+│       │   ├── tests/
+│       │   │   ├── protocol-parser.scm
+│       │   │   ├── cli-args.scm
+│       │   │   ├── mime-types.scm
+│       │   │   ├── file-handler.scm
+│       │   │   ├── tls-config.scm
+│       │   │   └── integration.scm
+│       │   └── run-unit-tests.scm    # Unit test runner
+│       └── src/                      # Server source code
+├── test/
+│   ├── acceptance-tests/             # Integration/black-box tests
+│   │   └── server/                   # Test scenarios
+│   └── test-content/                 # Test static files
+└── scripts/                          # Build and test scripts
 ```
 
 ## Running Unit Tests
@@ -32,7 +35,7 @@ Unit tests verify individual module functionality in isolation.
 
 ```bash
 # From project root
-cd server
+cd src/server
 ./run-unit-tests.scm
 
 # Or explicitly with Guile
@@ -112,11 +115,11 @@ Acceptance tests require a running server instance:
 
 ```bash
 # Terminal 1: Start test server
-cd server/src/gemini
-guile server.scm --port 1966 --static-dir ../../../test-content
+cd src/server/src
+guile server.scm --port 1966 --static-dir ../../test/test-content
 
 # Terminal 2: Run acceptance tests
-cd acceptance-tests
+cd test/acceptance-tests
 ./run-acceptance-tests.scm
 ```
 
@@ -150,11 +153,11 @@ lagrange gemini://localhost:1966/
 
 ### Automated Test Scenarios
 
-Create test scenarios in `acceptance-tests/server/`:
+Create test scenarios in `test/acceptance-tests/server/`:
 
 ```bash
 # Example test structure
-acceptance-tests/server/
+test/acceptance-tests/server/
 ├── basic-requests/
 ├── error-handling/
 ├── security/
@@ -163,10 +166,10 @@ acceptance-tests/server/
 
 ## Test Content Structure
 
-The `test-content/` directory contains files for testing:
+The `test/test-content/` directory contains files for testing:
 
 ```
-test-content/
+test/test-content/
 ├── index.gmi              # Homepage test
 ├── test.txt               # Plain text test
 ├── subdir/
@@ -182,10 +185,10 @@ test-content/
 
 ```bash
 # Create basic test files
-mkdir -p test-content/subdir
+mkdir -p test/test-content/subdir
 
 # Homepage
-cat > test-content/index.gmi << 'EOF'
+cat > test/test-content/index.gmi << 'EOF'
 # Test Homepage
 
 This is a test page for the Gemini server.
@@ -196,12 +199,12 @@ This is a test page for the Gemini server.
 EOF
 
 # Plain text test
-cat > test-content/test.txt << 'EOF'
+cat > test/test-content/test.txt << 'EOF'
 This is a plain text file for testing MIME type detection.
 EOF
 
 # Subdirectory index
-cat > test-content/subdir/index.gmi << 'EOF'
+cat > test/test-content/subdir/index.gmi << 'EOF'
 # Subdirectory Test
 
 This page tests subdirectory serving.
@@ -214,7 +217,7 @@ EOF
 
 ### Unit Test Template
 
-Create new unit test modules in `server/tests/tests/`:
+Create new unit test modules in `src/server/tests/tests/`:
 
 ```scheme
 ;;; tests/my-feature.scm
@@ -246,7 +249,7 @@ Create new unit test modules in `server/tests/tests/`:
 
 ### Acceptance Test Template
 
-Create test scenarios in `acceptance-tests/`:
+Create test scenarios in `test/acceptance-tests/`:
 
 ```scheme
 ;;; acceptance-tests/my-scenario.scm
@@ -317,13 +320,13 @@ echo "Starting Gemini server tests..."
 
 # Run unit tests
 echo "Running unit tests..."
-cd server
+cd src/server
 ./run-unit-tests.scm
 
 # Start server for acceptance tests
 echo "Starting test server..."
-cd src/gemini
-guile server.scm --port 1966 --static-dir ../../../test-content &
+cd src
+guile server.scm --port 1966 --static-dir ../../test/test-content &
 SERVER_PID=$!
 
 # Wait for server to start
@@ -331,7 +334,7 @@ sleep 2
 
 # Run acceptance tests
 echo "Running acceptance tests..."
-cd ../../../acceptance-tests
+cd ../../test/acceptance-tests
 ./run-acceptance-tests.scm
 
 # Cleanup
@@ -351,7 +354,7 @@ Add test targets to `Makefile`:
 test: test-unit test-acceptance
 
 test-unit:
-	cd server && ./run-unit-tests.scm
+	cd src/server && ./run-unit-tests.scm
 
 test-acceptance:
 	./test-all.sh
@@ -380,7 +383,7 @@ guile -c "
 # Run tests in clean environment
 env -i guile run-unit-tests.scm
 
-# Test with specific module paths
+# Test with specific module paths (from src/server directory)
 GUILE_LOAD_PATH="$(pwd)/src:$(pwd)/tests" guile run-unit-tests.scm
 ```
 
@@ -434,10 +437,10 @@ Review test coverage by examining:
 netstat -tlnp | grep 1966
 
 # Check certificate files
-ls -la server/certs/
+ls -la src/server/certs/
 
 # Run with verbose logging
-guile --debug server/src/gemini/server.scm
+guile --debug src/server/src/server.scm
 ```
 
 ### Test Failures
@@ -455,7 +458,7 @@ guile tests/tests/protocol-parser.scm
 ### TLS Connection Issues
 ```bash
 # Test certificate validity
-openssl x509 -in server/certs/cert.pem -text -noout
+openssl x509 -in src/server/certs/cert.pem -text -noout
 
 # Check TLS configuration
 openssl s_client -connect localhost:1966 -servername localhost
