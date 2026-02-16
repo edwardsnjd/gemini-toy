@@ -58,12 +58,14 @@ Use these simple commands to work with the project:
 gemini-toy/
 ├── src/                     # Application source code
 │   └── server/              # Server implementation
-│       ├── src/gemini/      # Core server modules
+│       ├── src/             # Core server modules (server.scm, etc.)
 │       ├── tests/           # Unit tests
+│       │   └── tests/       # Test modules
 │       ├── certs/           # TLS certificates
 │       └── run-unit-tests.scm
 ├── test/                    # Testing files and utilities
 │   ├── acceptance-tests/    # Integration/acceptance tests
+│   │   └── server/          # Test scenarios
 │   └── test-content/        # Test static files
 ├── doc/                     # Documentation
 │   ├── TESTING.md           # Detailed testing guide
@@ -97,7 +99,7 @@ bash scripts/start-server.sh --verbose               # Verbose output
 ### Manual Start (Advanced)
 ```bash
 cd src/server
-GUILE_LOAD_PATH=src guile src/gemini/server.scm -d ../../static
+GUILE_LOAD_PATH=src guile src/gemini/server.scm -d ../../test/test-content
 ```
 
 ## Server Options

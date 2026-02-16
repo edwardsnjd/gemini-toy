@@ -8,13 +8,15 @@ The server is designed with a modular architecture, separating concerns into dis
 
 ```
 server/
-├── src/gemini/           # Core server modules
-│   ├── server.scm        # Main entry point and socket handling
-│   ├── protocol.scm      # Gemini protocol parsing and formatting
-│   ├── file-handler.scm  # File system operations and content serving
-│   ├── tls-config.scm    # TLS/SSL certificate management
-│   └── mime-types.scm    # MIME type detection
-├── tests/                # Unit test modules
+├── src/
+│   └── gemini/           # Core server modules
+│       ├── server.scm    # Main entry point and socket handling
+│       ├── protocol.scm  # Gemini protocol parsing and formatting
+│       ├── file-handler.scm  # File system operations and content serving
+│       ├── tls-config.scm    # TLS/SSL certificate management
+│       └── mime-types.scm    # MIME type detection
+├── tests/
+│   └── tests/            # Unit test modules
 ├── certs/                # TLS certificates directory
 └── run-unit-tests.scm    # Test runner
 ```
@@ -96,8 +98,8 @@ The server accepts several configuration parameters:
 |-----------|------|---------|-------------|
 | `port` | integer | 1965 | TCP port to bind to |
 | `static-dir` | string | "./static" | Root directory for static files |
-| `cert` | string | "server/certs/cert.pem" | TLS certificate file path |
-| `key` | string | "server/certs/key.pem" | TLS private key file path |
+| `cert` | string | "certs/cert.pem" | TLS certificate file path |
+| `key` | string | "certs/key.pem" | TLS private key file path |
 
 ### Environment Requirements
 
@@ -114,8 +116,9 @@ The server accepts several configuration parameters:
 The server will automatically generate self-signed certificates if none are found:
 
 ```bash
-# Certificates will be created in server/certs/
-guile server.scm
+# Certificates will be created in certs/
+cd src
+GUILE_LOAD_PATH=. guile gemini/server.scm
 ```
 
 ### Using Custom Certificates
@@ -124,14 +127,14 @@ guile server.scm
 
 ```bash
 # Create certificate directory
-mkdir -p server/certs
+mkdir -p certs
 
 # Generate private key
-openssl genrsa -out server/certs/key.pem 2048
+openssl genrsa -out certs/key.pem 2048
 
 # Generate self-signed certificate
-openssl req -new -x509 -key server/certs/key.pem \
-    -out server/certs/cert.pem -days 365 \
+openssl req -new -x509 -key certs/key.pem \
+    -out certs/cert.pem -days 365 \
     -subj "/CN=localhost"
 ```
 
@@ -139,15 +142,15 @@ openssl req -new -x509 -key server/certs/key.pem \
 
 ```bash
 # Generate private key
-openssl genrsa -out server/certs/key.pem 2048
+openssl genrsa -out certs/key.pem 2048
 
 # Generate certificate signing request
-openssl req -new -key server/certs/key.pem \
-    -out server/certs/cert.csr \
+openssl req -new -key certs/key.pem \
+    -out certs/cert.csr \
     -subj "/CN=yourdomain.com"
 
 # Submit CSR to your CA and save the certificate as:
-# server/certs/cert.pem
+# certs/cert.pem
 ```
 
 #### Let's Encrypt Certificate
@@ -157,8 +160,8 @@ openssl req -new -key server/certs/key.pem \
 sudo certbot certonly --standalone -d yourdomain.com
 
 # Copy certificates to server directory
-cp /etc/letsencrypt/live/yourdomain.com/fullchain.pem server/certs/cert.pem
-cp /etc/letsencrypt/live/yourdomain.com/privkey.pem server/certs/key.pem
+cp /etc/letsencrypt/live/yourdomain.com/fullchain.pem certs/cert.pem
+cp /etc/letsencrypt/live/yourdomain.com/privkey.pem certs/key.pem
 ```
 
 ### Certificate File Formats
@@ -170,8 +173,8 @@ cp /etc/letsencrypt/live/yourdomain.com/privkey.pem server/certs/key.pem
 
 ```bash
 # Set proper permissions
-chmod 600 server/certs/key.pem
-chmod 644 server/certs/cert.pem
+chmod 600 certs/key.pem
+chmod 644 certs/cert.pem
 ```
 
 ## Request Processing Flow
@@ -220,18 +223,20 @@ The server implements comprehensive error handling:
 
 ```bash
 # Enable verbose logging
-guile --debug server.scm
+cd src
+guile --debug gemini/server.scm
 
 # Run with custom log level
-GUILE_WARN_DEPRECATED=detailed guile server.scm
+cd src
+GUILE_WARN_DEPRECATED=detailed guile gemini/server.scm
 ```
 
 ### Module Testing
 
 ```bash
-# Test individual modules
-cd server
-guile -c "(use-modules (gemini protocol)) (display \"Module loaded successfully\")"
+# Test individual modules (from src/server)
+cd src
+GUILE_LOAD_PATH=. guile -c "(use-modules (gemini protocol)) (display \"Module loaded successfully\")"
 ```
 
 ### Performance Monitoring
@@ -254,22 +259,24 @@ time (echo "gemini://localhost/" | openssl s_client -connect localhost:1965 -qui
 ### Port Permission Errors
 Ports below 1024 require root privileges:
 ```bash
-sudo guile server.scm --port 1965
+cd src
+sudo GUILE_LOAD_PATH=. guile gemini/server.scm --port 965
 # or use a higher port
-guile server.scm --port 1966
+cd src
+GUILE_LOAD_PATH=. guile gemini/server.scm --port 1966
 ```
 
 ### Certificate Errors
 Check certificate file permissions and paths:
 ```bash
-ls -la server/certs/
-openssl x509 -in server/certs/cert.pem -text -noout
+ls -la certs/
+openssl x509 -in certs/cert.pem -text -noout
 ```
 
 ### Module Load Errors
-Ensure Guile can find the modules:
+Ensure Guile can find the modules (from src/server):
 ```bash
-export GUILE_LOAD_PATH="$(pwd)/server/src:$GUILE_LOAD_PATH"
+export GUILE_LOAD_PATH="$(pwd)/src:$GUILE_LOAD_PATH"
 ```
 
 ## Future Enhancements
