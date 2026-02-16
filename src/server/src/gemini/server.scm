@@ -168,21 +168,21 @@
 (define (validate-request-handler request static-dir)
   (and (not (validate-request request))
        (cond
-         ((> (string-length request) 1024) (response/request-too-long))
-         ((non-gemini-scheme? request) (response/non-gemini-scheme))
-         (else (response/bad-request)))))
+         ((> (string-length request) 1024) response/request-too-long)
+         ((non-gemini-scheme? request) response/non-gemini-scheme)
+         (else response/bad-request))))
 
 ;;; Handler 2: URI parsing with error detection
 (define (parse-uri-handler request static-dir)
   (let ((uri (parse-gemini-request request)))
     (and (or (not uri) (path-traversal-attempt? (uri-path uri)))
          (if (non-gemini-scheme? request)
-             (response/non-gemini-scheme)
-             (response/bad-request)))))
+             response/non-gemini-scheme
+             response/bad-request))))
 
 ;;; Handler 3: File serving with proper error handling
 (define (serve-file-handler request static-dir)
-  (error-or (response/temporary-failure)
+  (error-or response/temporary-failure
     (and-let* ((uri (parse-gemini-request request))
                (safe-path (resolve-file-path static-dir (uri-path uri)))
                (final-path (resolve-directory-index safe-path))

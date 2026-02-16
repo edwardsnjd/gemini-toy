@@ -61,28 +61,32 @@
 (define (trim-crlf request-line)
   (string-trim-right request-line (char-set #\newline #\return)))
 
+;;; Format a Gemini response according to protocol specification  
+(define (format-gemini-response status-code meta body)
+  (string-append (number->string status-code) " " meta "\r\n"
+                 (or body "")))
+
 ;;; Error response builder - creates properly formatted error responses
 (define (error-response code meta)
   "Build a Gemini error response with code and meta string"
   (format-gemini-response code meta #f))
 
-;;; Predefined error responses (Gemini Status Codes)
-(define response/success (lambda () "20 text/gemini; charset=utf-8"))
-(define response/temporary-failure (lambda () (error-response 40 "Temporary Failure")))
-(define response/permanent-failure (lambda () (error-response 50 "Permanent Failure")))
-(define response/redirect (lambda (url) (error-response 30 url)))
-(define response/client-cert-required (lambda () (error-response 60 "Client Certificate Required")))
-(define response/cert-not-authorized (lambda () (error-response 61 "Certificate Not Authorized")))
-(define response/cert-not-valid (lambda () (error-response 62 "Certificate Not Valid")))
-(define response/request-too-long (lambda () (error-response 59 "Request too long")))
-(define response/bad-request (lambda () (error-response 59 "Bad Request")))
-(define response/not-found (lambda () (error-response 51 "Not Found")))
-(define response/non-gemini-scheme (lambda () (error-response 59 "Only gemini:// URIs supported")))
+;;; Predefined error responses (Gemini Status Codes) - string constants
+(define response/success "20 text/gemini; charset=utf-8\r\n")
+(define response/temporary-failure (error-response 40 "Temporary Failure"))
+(define response/permanent-failure (error-response 50 "Permanent Failure"))
+(define response/client-cert-required (error-response 60 "Client Certificate Required"))
+(define response/cert-not-authorized (error-response 61 "Certificate Not Authorized"))
+(define response/cert-not-valid (error-response 62 "Certificate Not Valid"))
+(define response/request-too-long (error-response 59 "Request too long"))
+(define response/bad-request (error-response 59 "Bad Request"))
+(define response/not-found (error-response 51 "Not Found"))
+(define response/non-gemini-scheme (error-response 59 "Only gemini:// URIs supported"))
 
-;;; Format a Gemini response according to protocol specification  
-(define (format-gemini-response status-code meta body)
-  (string-append (number->string status-code) " " meta "\r\n"
-                 (or body "")))
+;;; Helper function for parameterized responses (redirect)
+(define (response/redirect url)
+  "Create a redirect response to the given URL"
+  (error-response 30 url))
 
 ;;; Validate request format and constraints according to Gemini specification
 (define (validate-request request-line)
