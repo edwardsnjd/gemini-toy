@@ -74,7 +74,6 @@ gemini-toy/
 │   ├── start-server.sh      # Start development server
 │   ├── run-all-tests.sh     # Run complete test suite
 │   └── [other utilities]
-├── static/                  # Default static files served by server
 ├── Makefile                 # Project commands
 ├── Dockerfile.dev           # Development container
 └── .opencode/              # OpenCode specification artifacts
