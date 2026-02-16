@@ -35,7 +35,7 @@
 - [x] 5.5 Implement `make build` target (if applicable; create necessary build artifacts)
 - [x] 5.6 Implement `make clean` target (remove build artifacts, logs, and test outputs)
 - [x] 5.7 Implement `make help` target (list all targets with descriptions)
-- [ ] 5.8 Test all make targets to ensure they work correctly
+- [x] 5.8 Test all make targets to ensure they work correctly
 
 ## 6. Create/Update README
 
@@ -52,7 +52,7 @@
 - [x] 7.1 Audit Dockerfile.dev and update paths if needed
 - [x] 7.2 Audit any CI/CD configuration files and update paths (GitHub Actions, etc.)
 - [x] 7.3 Update any environment variables or configuration that reference old paths
-- [ ] 7.4 Test that container builds still work with new structure
+- [x] 7.4 Test that container builds still work with new structure
 
 ## 8. Cleanup and Finalization
 
@@ -60,14 +60,14 @@
 - [x] 8.2 Archive old error testing results if not needed in docs/
 - [x] 8.3 Verify no critical files are left at root (should only have src/, test/, docs/, scripts/, and config files)
 - [x] 8.4 Clean up any leftover `simple-server.log` or build artifacts
-- [ ] 8.5 Run full test suite to verify nothing is broken after reorganization
+- [x] 8.5 Run full test suite to verify nothing is broken after reorganization
 - [x] 8.6 Document any breaking changes for developers with old clones
 
 ## 9. Verification
 
-- [ ] 9.1 Verify `make setup` initializes project correctly
-- [ ] 9.2 Verify `make run` starts server successfully
-- [ ] 9.3 Verify `make test` runs all tests and reports results
-- [ ] 9.4 Verify `make clean` removes build artifacts without affecting source code
-- [ ] 9.5 Verify all file paths in source code resolve correctly
-- [ ] 9.6 Verify git history is preserved for moved files
+- [x] 9.1 Verify `make setup` initializes project correctly
+- [x] 9.2 Verify `make run` starts server successfully
+- [x] 9.3 Verify `make test` runs all tests and reports results
+- [x] 9.4 Verify `make clean` removes build artifacts without affecting source code
+- [x] 9.5 Verify all file paths in source code resolve correctly
+- [x] 9.6 Verify git history is preserved for moved files
