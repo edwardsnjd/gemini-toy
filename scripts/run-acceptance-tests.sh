@@ -42,8 +42,6 @@ cleanup() {
 # Set trap for cleanup
 trap cleanup EXIT INT TERM
 
-
-
 # Start the test server
 echo -e "${BLUE}🌐 Starting Gemini server on port $SERVER_PORT...${NC}"
 echo "📂 Serving from: $TEST_CONTENT_DIR"
@@ -80,36 +78,28 @@ echo -e "${BLUE}🧪 Running acceptance tests...${NC}"
 echo "================================"
 
 # Method 1: Try running structured acceptance tests
-if [ -f "test/acceptance-tests/run-acceptance-tests.scm" ]; then
-    echo "📋 Running structured acceptance test suite..."
-    cd test/acceptance-tests
-    TEST_OUTPUT=$(GUILE_LOAD_PATH=../../src/server/src:. timeout $TEST_TIMEOUT guile run-acceptance-tests.scm 2>&1)
-    TEST_EXIT=$?
-    
-    # Display test output
-    echo "$TEST_OUTPUT"
-    
-    # Check for test failures
-    if echo "$TEST_OUTPUT" | grep -q "# of unexpected failures: [1-9]"; then
-        echo -e "${RED}❌ Acceptance tests FAILED${NC}"
-        ACCEPTANCE_FAILED=1
-    elif echo "$TEST_OUTPUT" | grep -q "# of unexpected errors: [1-9]"; then
-        echo -e "${RED}❌ Acceptance tests had errors${NC}"
-        ACCEPTANCE_FAILED=1
-    elif [ $TEST_EXIT -eq 0 ]; then
-        echo -e "${GREEN}✅ Structured acceptance tests completed${NC}"
-    else
-        echo -e "${YELLOW}⚠️  Structured acceptance tests had issues (expected - may need server fixes)${NC}"
-    fi
-    cd ../..
+echo "📋 Running structured acceptance test suite..."
+cd test/acceptance-tests
+TEST_OUTPUT=$(GUILE_LOAD_PATH=../../src/server/src:. timeout $TEST_TIMEOUT guile run-acceptance-tests.scm 2>&1)
+TEST_EXIT=$?
+
+# Display test output
+echo "$TEST_OUTPUT"
+
+# Check for test failures
+if echo "$TEST_OUTPUT" | grep -q "# of unexpected failures: [1-9]"; then
+    echo -e "${RED}❌ Acceptance tests FAILED${NC}"
+    ACCEPTANCE_FAILED=1
+elif echo "$TEST_OUTPUT" | grep -q "# of unexpected errors: [1-9]"; then
+    echo -e "${RED}❌ Acceptance tests had errors${NC}"
+    ACCEPTANCE_FAILED=1
+elif [ $TEST_EXIT -eq 0 ]; then
+    echo -e "${GREEN}✅ Structured acceptance tests completed${NC}"
 else
-    echo -e "${YELLOW}ℹ️  Structured acceptance tests not available${NC}"
+    echo -e "${YELLOW}⚠️  Structured acceptance tests had issues (expected - may need server fixes)${NC}"
 fi
 
-    cd ../..
-else
-    echo -e "${YELLOW}ℹ️  Structured acceptance tests not available${NC}"
-fi
+cd ../..
 
 echo
 echo -e "${BLUE}🔧 Running manual acceptance tests...${NC}"
