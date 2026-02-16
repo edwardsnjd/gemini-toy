@@ -67,8 +67,9 @@ gemini-toy/
 │   └── test-content/        # Test static files
 ├── docs/                    # Documentation
 │   ├── TESTING.md          # Detailed testing guide
-│   ├── ERROR_TESTING_SUMMARY.md
-│   └── doc_old/            # Legacy documentation
+│   ├── adr/                # Architecture Decision Records
+│   │   └── 0001-record-architecture-decisions.md
+│   └── MIGRATION.md        # Migration guide
 ├── scripts/                 # Utility and build scripts
 │   ├── start-server.sh      # Start development server
 │   ├── run-all-tests.sh     # Run complete test suite
@@ -110,6 +111,14 @@ GUILE_LOAD_PATH=src guile src/gemini/server.scm -d ../../static
 | `--key` | `-k` | `src/server/certs/key.pem` | TLS private key file |
 | `--help` | `-h` | - | Show help message |
 | `--verbose` | `-v` | - | Enable verbose output |
+
+## Documentation
+
+This project maintains comprehensive documentation:
+
+- **[TESTING.md](docs/TESTING.md)** - Testing guide with test organization and procedures
+- **[Architecture Decision Records](docs/adr/)** - Design decisions and rationale for the project
+- **[MIGRATION.md](docs/MIGRATION.md)** - Project evolution and migration notes
 
 ## Running Tests
 
