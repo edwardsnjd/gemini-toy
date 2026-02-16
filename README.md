@@ -25,7 +25,6 @@ Use these simple commands to work with the project:
 | `make run` | Start the development server (port 1965) |
 | `make test` | Run all tests (unit, acceptance) |
 | `make clean` | Remove build artifacts and logs |
-| `make build-devenv` | Build devenv image |
 | `make devenv` | Run devenv |
 
 ## Project Structure
@@ -163,11 +162,6 @@ static/
 ## Development
 
 ### Using Docker
-
-Build the development container:
-```bash
-make build
-```
 
 Run an interactive session:
 ```bash
