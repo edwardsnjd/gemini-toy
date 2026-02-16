@@ -18,7 +18,9 @@ echo "========================================"
 cd src/server
 
 # Capture output to check for failures
-OUTPUT=$(GUILE_LOAD_PATH=src:tests guile tests/run-unit-tests.scm 2>&1)
+# Note: stderr (progress dots) are redirected to /dev/null following SRFI-64 convention
+# where progress indicators go to stderr and structured results go to stdout
+OUTPUT=$(GUILE_LOAD_PATH=src:tests guile tests/run-unit-tests.scm 2>/dev/null)
 EXIT_CODE=$?
 
 # Display the output

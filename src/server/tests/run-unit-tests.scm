@@ -22,8 +22,7 @@
                (tests tls-config)
                (tests integration))
   
-  (test-end "gemini-server-unit-tests")
-  (display "Unit tests complete.\n"))
+  (test-end "gemini-server-unit-tests"))
 
 (when (batch-mode?)
   (run-all-unit-tests))
