@@ -15,8 +15,8 @@
       (test-equal "index content type" 
                   "text/gemini; charset=utf-8" 
                   (gemini-response-meta response))
-      (test-assert "index body contains welcome" 
-                   (string-contains (gemini-response-body response) "Welcome"))
+      (test-assert "index body contains header" 
+                   (string-contains (gemini-response-body response) "Gemini Test Server"))
       (gemini-response-status response))))
 
 (test-equal "root without trailing slash serves index.gmi"
@@ -26,8 +26,8 @@
       (test-equal "no-slash index content type" 
                   "text/gemini; charset=utf-8" 
                   (gemini-response-meta response))
-      (test-assert "no-slash index body contains welcome"
-                   (string-contains (gemini-response-body response) "Welcome"))
+      (test-assert "no-slash index body contains header"
+                   (string-contains (gemini-response-body response) "Gemini Test Server"))
       (gemini-response-status response))))
 
 (test-equal "subdirectory with index.gmi"
