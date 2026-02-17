@@ -33,7 +33,9 @@
 
 ;;; Parse response header into structured data
 (define (parse-gemini-response header-line)
-  (let* ((header-parts (string-split header-line #\space))
+  ;; Strip trailing \r from CRLF line endings (get-line only strips \n)
+  (let* ((clean-line (string-trim-right header-line #\return))
+         (header-parts (string-split clean-line #\space))
          (status-code (string->number (car header-parts)))
          (meta (string-join (cdr header-parts) " ")))
     (values status-code meta)))
@@ -48,8 +50,11 @@
                                    (inet-pton AF_INET host-addr) 
                                    *test-port*)))
     (connect socket addr)
-    (let ((session (make-session connection-end/client)))
-      (set-session-transport-fd! session (port->fdes socket))
+    (let ((session (make-session connection-end/client))
+          (credentials (make-certificate-credentials)))
+      ;; Set up TLS session - credentials must be set for handshake to work
+      (set-session-credentials! session credentials)
+      (set-session-transport-fd! session (fileno socket))
       (set-session-default-priority! session)
       
       (catch #t
@@ -57,28 +62,29 @@
           ;; TLS handshake
           (handshake session)
           
-          ;; Send request
-          (put-string session request-data)
-          (force-output session)
-          
-          ;; Read response header
-          (let* ((header-line (get-line session))
-                 (body (if (string-prefix? "2" header-line)
-                          (get-string-all session)
-                          "")))
-            (call-with-values
-              (lambda () (parse-gemini-response header-line))
-              (lambda (status meta)
-                ;; Clean up connection
-                (bye session close-request/rdwr)
-                (close-port session)
-                ;; Call user handler with parsed results
-                (handler (make-gemini-response status meta body))))))
+          ;; Get the session record port for I/O
+          (let ((port (session-record-port session)))
+            ;; Send request
+            (put-string port request-data)
+            (force-output port)
+            
+            ;; Read response header (just first line)
+            (let ((header-line (get-line port)))
+              (call-with-values
+                (lambda () (parse-gemini-response header-line))
+                (lambda (status meta)
+                  ;; Read body only if status is 20
+                  (let ((body (if (and status (= status 20))
+                                 (get-string-all port)
+                                 "")))
+                    ;; Clean up connection
+                    (catch #t (lambda () (close-port socket)) (lambda args #f))
+                    ;; Call user handler with parsed results
+                    (handler (make-gemini-response status meta body))))))))
         (lambda (key . args)
           (format #t "Connection error: ~a ~a\n" key args)
           ;; Clean up on error
-          (catch #t (lambda () (bye session close-request/rdwr)) (lambda args #f))
-          (catch #t (lambda () (close-port session)) (lambda args #f))
+          (catch #t (lambda () (close-port socket)) (lambda args #f))
           ;; Return error response
           (handler (make-gemini-response #f "Connection failed" "")))))))
 
