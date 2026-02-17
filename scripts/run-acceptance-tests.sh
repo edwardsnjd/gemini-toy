@@ -117,7 +117,7 @@ echo
 echo "📄 Testing file serving..."
 response=$(echo "gemini://localhost:$SERVER_PORT/test.txt" | timeout 5 openssl s_client -connect localhost:$SERVER_PORT -servername localhost -quiet 2>/dev/null | head -1)
 if [[ $response == "20 "* ]]; then
-    echo -e "${GREEN}✅ File serving working (got: $response)${NC}"
+    echo -e "${GREEN}✅ File serving working${NC}"
 else
     echo -e "${YELLOW}⚠️  File serving response: $response${NC}"
 fi
@@ -126,7 +126,7 @@ echo
 echo "🚫 Testing error conditions..."
 error_response=$(echo "gemini://localhost:$SERVER_PORT/nonexistent.txt" | timeout 5 openssl s_client -connect localhost:$SERVER_PORT -servername localhost -quiet 2>/dev/null | head -1)
 if [[ $error_response == "51 "* ]]; then
-    echo -e "${GREEN}✅ Error handling working (got: $error_response)${NC}"
+    echo -e "${GREEN}✅ Error handling working${NC}"
 else
     echo -e "${YELLOW}⚠️  Error response: $error_response${NC}"
 fi
