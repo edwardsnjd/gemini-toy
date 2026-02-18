@@ -119,9 +119,3 @@
     result))
 
 (test-end "cli-error-handling")
-
-;;; Export for test runner
-(define (run-cli-args-tests)
-  (display "Running CLI arguments tests...\n")
-  ;; Tests run when module is loaded
-  )
