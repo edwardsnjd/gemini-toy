@@ -9,22 +9,12 @@ The project uses a two-tier testing approach:
 ```
 gemini-toy/
 ├── src/
-│   └── server/
-│       ├── tests/                    # Unit tests
-│       │   ├── tests/
-│       │   │   ├── protocol-parser.scm
-│       │   │   ├── cli-args.scm
-│       │   │   ├── mime-types.scm
-│       │   │   ├── file-handler.scm
-│       │   │   ├── tls-config.scm
-│       │   │   └── integration.scm
-│       │   └── run-unit-tests.scm    # Unit test runner
-│       └── src/                      # Server source code
-├── test/
-│   ├── acceptance-tests/             # Integration/black-box tests
-│   │   └── server/                   # Test scenarios
-│   └── test-content/                 # Test static files
-└── scripts/                          # Build and test scripts
+│   └── server/
+│       ├── src/               # Server implementation
+│       └── tests/             # Server unit tests
+└── test/
+    ├── acceptance-tests/      # Integration/black-box tests
+    └── test-content/          # Test static files
 ```
 
 ## Running Unit Tests
@@ -35,24 +25,7 @@ Unit tests verify individual module functionality in isolation.
 
 ```bash
 # From project root
-cd src/server
-./run-unit-tests.scm
-
-# Or explicitly with Guile
-guile run-unit-tests.scm
-```
-
-### Run Specific Test Modules
-
-```bash
-# From server directory
-guile -c "
-(add-to-load-path \"src\")
-(add-to-load-path \"tests\")
-(use-modules (srfi srfi-64) (tests protocol-parser))
-(test-begin \"protocol-tests\")
-(test-end \"protocol-tests\")
-"
+scripts/run-unit-tests.scm
 ```
 
 ### Unit Test Modules
@@ -112,7 +85,6 @@ Acceptance tests verify the server's behavior from a client perspective.
 ### Prerequisites
 
 See `scripts/run-acceptance-tests.sh` - it handles all prerequisites, server startup, and test execution automatically.
-
 
 ## Writing New Tests
 
@@ -188,23 +160,6 @@ The project uses SRFI-64, which provides:
 - `test-error` - Exception tests
 - `test-approximate` - Numerical comparison with tolerance
 
-### Custom Test Utilities
-
-Add common test utilities to modules:
-
-```scheme
-;;; Common test utilities
-(define (test-server-connection)
-  "Test if server is responding"
-  ;; Implementation here
-  #t)
-
-(define (make-test-request uri)
-  "Make a test request to the server"
-  ;; Implementation here
-  "expected-response")
-```
-
 ## Debugging Tests
 
 ### Verbose Test Output
@@ -220,16 +175,6 @@ guile -c "
 (test-equal \"my-test\" 'expected (my-function))
 (test-end \"debug-test\")
 "
-```
-
-### Test Isolation
-
-```bash
-# Run tests in clean environment
-env -i guile run-unit-tests.scm
-
-# Test with specific module paths (from src/server directory)
-GUILE_LOAD_PATH="$(pwd)/src:$(pwd)/tests" guile run-unit-tests.scm
 ```
 
 ## Performance Testing
@@ -255,24 +200,6 @@ valgrind --tool=memcheck guile server.scm &
 ```
 
 ## Test Coverage
-
-### Manual Coverage Analysis
-
-Review test coverage by examining:
-
-1. **Module Coverage**: Ensure all modules have corresponding tests
-2. **Function Coverage**: Verify all public functions are tested
-3. **Error Path Coverage**: Test error conditions and edge cases
-4. **Integration Coverage**: Test module interactions
-
-### Coverage Checklist
-
-- [ ] All exported functions tested
-- [ ] Error conditions covered
-- [ ] Edge cases handled
-- [ ] Integration scenarios tested
-- [ ] Security features verified
-- [ ] Configuration options tested
 
 ## Common Testing Issues
 
