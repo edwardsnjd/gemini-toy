@@ -1,7 +1,7 @@
 ;;; Gemini Test Utilities
 ;;; Shared abstractions for elegant acceptance testing
 
-(define-module (gemini-test-utils)
+(define-module (lib)
   #:use-module (srfi srfi-64)    ; Testing framework
   #:use-module (srfi srfi-9)     ; Records
   #:use-module (gnutls)          ; TLS connections
@@ -9,15 +9,21 @@
   #:use-module (ice-9 format)
   #:export (with-gemini-request
             with-raw-gemini-request
-            test-mime-types
-            test-malformed-requests
-            assert-status-and-mime
-            assert-status-mime-and-body
-            assert-status-and-body-length
+            assert-status
+            assert-successful-status
+            assert-error-status
+            assert-mime-type
+            assert-meta-contains
+            assert-error-message
+            assert-body-contains
+            assert-body-length
+            assert-body-empty
+            assert-body-not-empty
             gemini-response?
             gemini-response-status
             gemini-response-meta
-            gemini-response-body))
+            gemini-response-body
+            make-gemini-response))
 
 ;;; Configuration
 (define *test-host* "localhost")
@@ -30,6 +36,8 @@
   (status gemini-response-status)
   (meta gemini-response-meta)
   (body gemini-response-body))
+
+;;; Request helpers
 
 ;;; Parse response header into structured data
 (define (parse-gemini-response header-line)
@@ -94,71 +102,64 @@
   (let ((request (format #f "gemini://~a:~a~a\r\n" host port uri-path)))
     (connect-and-request request handler)))
 
-;;; Raw request abstraction for testing malformed requests  
+;;; Raw request abstraction for testing malformed requests
 (define (with-raw-gemini-request raw-data handler)
   "Send raw data and call handler with response - for testing protocol edge cases"
   (connect-and-request raw-data handler))
 
-;;; Declarative MIME type testing
-(define (test-mime-types test-specs)
-  "Test MIME types using declarative specifications"
-  (for-each
-    (lambda (spec)
-      (let ((file-path (car spec))
-            (expected-mime (cadr spec)))
-        (with-gemini-request (string-append "/" file-path)
-          (lambda (response)
-            (test-equal (format #f "~a status" file-path) 
-                       20 
-                       (gemini-response-status response))
-            (test-equal (format #f "~a MIME type" file-path)
-                       expected-mime
-                       (gemini-response-meta response))))))
-    test-specs))
+;;; Assertion helpers
 
-;;; Declarative malformed request testing
-(define (test-malformed-requests test-specs)
-  "Test malformed requests using declarative specifications"
-  (for-each
-    (lambda (spec)
-      (let ((test-name (car spec))
-            (raw-request (cadr spec))
-            (expected-status (caddr spec))
-            (meta-contains (if (> (length spec) 3) (cadddr spec) #f)))
-        (with-raw-gemini-request raw-request
-          (lambda (response)
-            (test-equal (format #f "~a returns ~a" test-name expected-status)
-                       expected-status
-                       (gemini-response-status response))
-            (when meta-contains
-              (test-assert (format #f "~a meta contains ~a" test-name meta-contains)
-                         (string-contains 
-                           (string-downcase (gemini-response-meta response)) 
-                           meta-contains)))))))
-    test-specs))
-
-;;; Helper: Assert status and MIME type match expected values
-(define (assert-status-and-mime response expected-status expected-mime test-desc)
-  "Verify response has expected status code and MIME type"
+(define (assert-status response expected-status test-desc)
+  "Verify response has expected status code"
   (test-equal (string-append test-desc " status") 
-             expected-status 
-             (gemini-response-status response))
+              expected-status 
+              (gemini-response-status response)))
+
+(define (assert-successful-status response test-desc)
+  "Verify response has successful status (20)"
+  (assert-status response 20 test-desc))
+
+(define (assert-error-status response test-desc)
+  "Verify response has error status (40-69 range)"
+  (let ((status (gemini-response-status response)))
+    (test-assert (string-append test-desc " error status")
+                (and status (>= status 40) (<= status 69)))))
+
+(define (assert-mime-type response expected-mime test-desc)
+  "Verify response has expected MIME type"
   (test-equal (string-append test-desc " MIME type")
-             expected-mime
-             (gemini-response-meta response)))
+              expected-mime
+              (gemini-response-meta response)))
 
-;;; Helper: Assert status, MIME type, and body contains text
-(define (assert-status-mime-and-body response expected-status expected-mime contains-text test-desc)
-  "Verify response has expected status, MIME type, and body contains text"
-  (assert-status-and-mime response expected-status expected-mime test-desc)
-  (test-assert (string-append test-desc " body contains text")
-              (string-contains (gemini-response-body response) contains-text)))
+(define (assert-meta-contains response expected-substring test-desc)
+  "Verify response meta field contains expected substring"
+  (test-assert (string-append test-desc " meta contains '" expected-substring "'")
+               (string-contains 
+                 (string-downcase (gemini-response-meta response))
+                 (string-downcase expected-substring))))
 
-;;; Helper: Assert status and body length > 0
-(define (assert-status-and-body-length response expected-status test-desc)
-  "Verify response has expected status and non-empty body"
-  (test-equal (string-append test-desc " status")
-             expected-status
-             (gemini-response-status response))
-  (test-assert (string-append test-desc " has body content")
-              (> (string-length (gemini-response-body response)) 0)))
+(define (assert-error-message response expected-message test-desc)
+  "Verify response error meta field contains expected message"
+  (assert-meta-contains response expected-message test-desc))
+
+(define (assert-body-contains response expected-substring test-desc)
+  "Verify response body contains expected substring"
+  (test-assert (string-append test-desc " body contains '" expected-substring "'")
+               (string-contains (gemini-response-body response) expected-substring)))
+
+(define (assert-body-length response expected-length test-desc)
+  "Verify response body has expected length"
+  (test-equal (string-append test-desc " body length")
+              expected-length
+              (string-length (gemini-response-body response))))
+
+(define (assert-body-empty response test-desc)
+  "Verify response body is empty"
+  (test-equal (string-append test-desc " body is empty")
+              0
+              (string-length (gemini-response-body response))))
+
+(define (assert-body-not-empty response test-desc)
+  "Verify response body is not empty"
+  (test-assert (string-append test-desc " body is not empty")
+               (> (string-length (gemini-response-body response)) 0)))
