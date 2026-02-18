@@ -47,8 +47,8 @@
 
 ;;; Find index file in directory according to Gemini conventions
 (define (find-index-file dir-path)
-  (and (file-exists? dir-path) 
+  (and (file-exists? dir-path)
        (file-is-directory? dir-path)
-       (find file-exists? 
-             (map (lambda (name) (string-append dir-path "/" name)) 
+       (find file-exists?
+             (map (lambda (name) (string-append dir-path "/" name))
                   index-file-names))))

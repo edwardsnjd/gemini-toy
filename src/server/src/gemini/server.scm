@@ -14,7 +14,7 @@
   #:use-module (ice-9 match)
   #:use-module (srfi srfi-1)  ; List utilities
   #:use-module (srfi srfi-2)  ; and-let*
-  #:use-module (srfi srfi-9)  ; Records  
+  #:use-module (srfi srfi-9)  ; Records
   #:use-module (srfi srfi-14) ; char-set for string-trim-right
   #:use-module (srfi srfi-19) ; Time/date formatting
   #:use-module (web uri)
@@ -23,9 +23,7 @@
   #:use-module (gemini tls-config)
   #:use-module (gemini mime-types)
   #:use-module (gemini utils)
-  #:export (main parse-cli-args validate-cli-args process-request server-loop log-message
-            ;; Backward compatibility for tests
-            config-to-alist))
+  #:export (main parse-cli-args validate-cli-args process-request server-loop log-message))
 
 ;;; Logging utility
 (define (log-message level message . args)
@@ -64,7 +62,7 @@
     (help (single-char #\h) (value #f))
     (version (single-char #\v) (value #f))))
 
-;;; Parse and validate command line arguments  
+;;; Parse and validate command line arguments
 (define (parse-cli-args args)
   (catch #t
     (lambda ()
@@ -98,7 +96,7 @@
              (or (not validator) (validator value))))
          config-spec))
 
-;;; Build and validate configuration from parsed options  
+;;; Build and validate configuration from parsed options
 (define (build-and-validate-config options)
   (let* ((config-values (map (lambda (spec) (extract-config-field options spec))
                              config-spec))

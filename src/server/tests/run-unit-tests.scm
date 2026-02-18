@@ -9,20 +9,11 @@
 
 (use-modules (srfi srfi-64))  ; Testing framework
 
-;;; Test discovery and running
-(define (run-all-unit-tests)
-  (display "Running unit tests...\n")
-  (test-begin "gemini-server-unit-tests")
-  
-  ;; Load and run all test modules
-  (use-modules (tests protocol-parser)
-               (tests cli-args)
-               (tests mime-types)
-               (tests file-handler)
-               (tests tls-config)
-               (tests integration))
-  
-  (test-end "gemini-server-unit-tests"))
-
-(when (batch-mode?)
-  (run-all-unit-tests))
+(test-begin "gemini-server-unit-tests")
+(use-modules (tests protocol-parser)
+             (tests cli-args)
+             (tests mime-types)
+             (tests file-handler)
+             (tests tls-config)
+             (tests integration))
+(test-end "gemini-server-unit-tests"))
