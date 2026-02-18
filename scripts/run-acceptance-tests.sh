@@ -47,7 +47,13 @@ echo -e "${BLUE}🌐 Starting Gemini server on port $SERVER_PORT...${NC}"
 echo "📂 Serving from: $TEST_CONTENT_DIR"
 
 cd src/server
-GUILE_LOAD_PATH=src guile src/gemini/server.scm -d "../../$TEST_CONTENT_DIR" -p $SERVER_PORT -c certs/cert.pem -k certs/key.pem > server.log 2>&1 &
+GUILE_LOAD_PATH=src \
+guile src/gemini/server.scm \
+    -d "../../$TEST_CONTENT_DIR" \
+    -p $SERVER_PORT \
+    -c certs/cert.pem \
+    -k certs/key.pem \
+    > server.log 2>&1 &
 SERVER_PID=$!
 cd ../..
 
@@ -79,9 +85,14 @@ echo "================================"
 
 # Method 1: Try running structured acceptance tests
 echo "📋 Running structured acceptance test suite..."
-cd test/acceptance-tests
-TEST_OUTPUT=$(GUILE_LOAD_PATH=../../src/server/src:. timeout $TEST_TIMEOUT guile run-acceptance-tests.scm 2>&1)
+cd test/acceptance-tests/
+TEST_OUTPUT=$(
+    GUILE_LOAD_PATH=. \
+    timeout $TEST_TIMEOUT \
+    guile run-acceptance-tests.scm 2>&1 \
+)
 TEST_EXIT=$?
+cd ../..
 
 # Display test output
 echo "$TEST_OUTPUT"
@@ -98,8 +109,6 @@ elif [ $TEST_EXIT -eq 0 ]; then
 else
     echo -e "${YELLOW}⚠️  Structured acceptance tests had issues (expected - may need server fixes)${NC}"
 fi
-
-cd ../..
 
 echo
 echo -e "${BLUE}🔧 Running manual acceptance tests...${NC}"
