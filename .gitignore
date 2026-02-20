@@ -22,3 +22,6 @@ static/
 
 # Makefile markers
 .devenv-image
+
+# Opencode
+.opencode/
