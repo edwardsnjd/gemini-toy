@@ -95,7 +95,6 @@ This project maintains comprehensive documentation:
 
 - **[TESTING.md](doc/TESTING.md)** - Testing guide with test organization and procedures
 - **[Architecture Decision Records](doc/adr/)** - Design decisions and rationale for the project
-- **[MIGRATION.md](doc/MIGRATION.md)** - Project evolution and migration notes
 
 ## Running Tests
 
@@ -112,14 +111,7 @@ make clean          # Clean up test artifacts
 bash scripts/run-all-tests.sh        # Complete test suite (recommended)
 bash scripts/run-unit-tests.sh       # Unit tests only (fast)
 bash scripts/run-acceptance-tests.sh # Integration tests only
-bash scripts/test-quick.sh           # Quick smoke test
 ```
-
-**Test Coverage:**
-- ✅ **Unit Tests**: Tests covering protocol parsing, validation, MIME types, file handling
-- ✅ **Acceptance Tests**: Black-box testing with real TLS connections
-- ✅ **Security Tests**: Path traversal prevention, request validation, error handling
-- ✅ **Protocol Compliance**: Full Gemini specification compliance verification
 
 ## Testing Your Server
 
