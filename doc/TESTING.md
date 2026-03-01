@@ -30,6 +30,8 @@ scripts/run-unit-tests.scm
 
 Acceptance tests verify the server's behavior from a client perspective.
 
+For detailed guidance on test structure and atomic assertion patterns, see the [Acceptance Tests README](../test/acceptance-tests/README.md).
+
 ```bash
 scripts/run-acceptance-tests.sh
 # handles all prerequisites, server startup, and test execution automatically.
