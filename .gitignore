@@ -22,6 +22,10 @@ static/
 
 # Makefile markers
 .devenv-image
+.devenv-name
 
 # Opencode
 .opencode/
+
+# Allow passing env vars to devenv
+.env

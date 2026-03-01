@@ -1,4 +1,4 @@
-.PHONY: setup run test clean devenv
+.PHONY: setup run test clean devenv-up devenv-down
 
 setup:
 	@bash scripts/setup.sh
@@ -12,9 +12,13 @@ test:
 clean:
 	@bash scripts/clean.sh
 
-devenv: .devenv-image
-	@bash scripts/devenv.sh
-
 .devenv-image: Dockerfile.dev
 	@bash scripts/build-devenv.sh
 	touch .devenv-image
+
+devenv-up: .devenv-image
+	@bash scripts/devenv-up.sh
+
+devenv-down:
+	@bash scripts/devenv-down.sh
+
