@@ -1,10 +1,12 @@
 FROM ubuntu:26.04
 
-RUN apt-get update \
- && DEBIAN_FRONTEND=noninteractive \
-  apt-get upgrade --yes \
- && DEBIAN_FRONTEND=noninteractive \
-  apt-get install --yes \
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get upgrade --yes
+RUN apt-get install unminimize --yes
+RUN yes | unminimize
+RUN apt-get install man --yes
+RUN apt-get install --yes \
    curl \
    git \
    xz-utils \
@@ -12,10 +14,12 @@ RUN apt-get update \
    nodejs \
    npm \
    guile-3.0 \
-   guile-gnutls \
- && rm -rf /var/lib/apt/lists/*
+   guile-gnutls
+ENV DEBIAN_FRONTEND=
 
 RUN npm install -g @fission-ai/openspec@latest
+
+RUN npm install -g @mariozechner/pi-coding-agent
 
 RUN npm install -g opencode-ai
 
