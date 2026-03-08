@@ -16,5 +16,7 @@
              (mime-types)
              (directory-index)
              (file-not-found)
-             (malformed-requests))
+             (malformed-requests)
+             (redirect-handling)
+             (proxy-request-refused))
 (test-end "gemini-server-acceptance-tests")

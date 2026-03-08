@@ -136,17 +136,64 @@
   (set-session-credentials! session credentials)
   (set-session-dh-prime-bits! session 1024)
   (set-session-priorities! session "NORMAL"))
+  ;; Request client certificate (optional)
+  ;; (set-server-session-certificate-request! session certificate-request/request) ; disabled due to missing constant)
 
 ;;; Perform TLS handshake and client handling
 (define (process-client-tls session static-dir client-addr)
-  (handshake session)
-  (log-message "DEBUG" "TLS handshake completed with ~a" client-addr)
-  (let ((port (session-record-port session)))
-    (handle-client port static-dir client-addr)
-    (close-port port))
-  (bye session close-request/rdwr))
+  (catch #t
+    (lambda ()
+      ;; Perform TLS handshake first
+      (handshake session)
+      (log-message "DEBUG" "TLS handshake completed with ~a" client-addr)
+      
+      ;; Get port AFTER successful handshake
+      (let ((port (session-record-port session)))
+        ;; Check client certificate status - this may throw if no cert provided
+        (let ((cert-status 
+               (catch #t
+                 (lambda () (peer-certificate-status session))
+                 (lambda (key . args)
+                   ;; No certificate was found - this is OK, treat as no cert
+                   (log-message "DEBUG" "No client certificate provided by ~a" client-addr)
+                   #f))))
+          (cond
+            ((or (not cert-status) (zero? cert-status))
+             ;; No client certificate provided or certificate is valid; proceed with request handling
+             (log-message "DEBUG" "Handshake done, handling client ~a" client-addr)
+             (handle-client port static-dir client-addr)
+             (close-port port)
+             (bye session close-request/rdwr))
+            ((eq? cert-status certificate-status/invalid)
+             (let ((response response/cert-not-valid))
+               (display response port)
+               (force-output port)
+               (log-message "INFO" "Client certificate not valid for ~a" client-addr)
+               (bye session close-request/rdwr)
+               (close-port port)))
+            (else
+             ;; Any other non-zero status indicates unauthorized client certificate
+             (let ((response response/cert-not-authorized))
+               (display response port)
+               (force-output port)
+               (log-message "INFO" "Client certificate not authorized for ~a" client-addr)
+               (bye session close-request/rdwr)
+               (close-port port)))))))
+    (lambda (key . args)
+      ;; Actual TLS handshake error (not certificate-related)
+      (log-message "INFO" "TLS handshake error for ~a: ~a" client-addr args)
+      (catch #t
+        (lambda ()
+          (let ((port (session-record-port session)))
+            (when port
+              (let ((response response/client-cert-required))
+                (display response port)
+                (force-output port))
+              (close-port port))))
+        (lambda (k . a) #f))
+      (bye session close-request/rdwr))))
 
-;;; Main server implementation  
+;;; Main server implementation
 (define (main args)
   (match (parse-cli-args args)
     ('help
@@ -166,40 +213,42 @@
 
 ;;; Handler 1: Request validation with specific error responses
 (define (validate-request-handler request static-dir)
-  (and (not (validate-request request))
-       (cond
-         ((> (string-length request) 1024) response/request-too-long)
-         ((non-gemini-scheme? request) response/non-gemini-scheme)
-         (else response/bad-request))))
+  (let ((result (validate-request request)))
+    (and (not (eq? result #t))
+         (cond
+          ((eq? result 'proxy-scheme) response/proxy-request-refused)
+          ((> (string-length request) 1024) response/request-too-long)
+          ((non-gemini-scheme? request) response/non-gemini-scheme)
+          (else response/bad-request)))))
 
 ;;; Handler 2: URI parsing with error detection
 (define (parse-uri-handler request static-dir)
   (let ((uri (parse-gemini-request request)))
-    (and (or (not uri) (path-traversal-attempt? (uri-path uri)))
-         (if (non-gemini-scheme? request)
-             response/non-gemini-scheme
-             response/bad-request))))
+    (and (or (not uri) (eq? uri 'proxy-scheme) (path-traversal-attempt? (uri-path uri)))
+         (cond
+          ((eq? uri 'proxy-scheme) response/proxy-request-refused)
+          ((non-gemini-scheme? request) response/non-gemini-scheme)
+          (else response/bad-request)))))
 
 ;;; Handler 3: File serving with proper error handling
 (define (serve-file-handler request static-dir)
   (or (safe-operation
         (and-let* ((uri (parse-gemini-request request)))
-          ;; Try to resolve the path - if it fails, file doesn't exist
-          (let ((safe-path (resolve-file-path static-dir (uri-path uri)))
-                (final-path #f))
-            (if (not safe-path)
-                ;; Path resolution failed - likely file doesn't exist or outside boundary
-                response/not-found
-                ;; Path resolved successfully, check for index files
-                (begin
-                  (set! final-path (resolve-directory-index safe-path))
-                  ;; Try to read and serve the file
-                  (let ((content (read-file-content final-path)))
-                    (if content
-                        (let ((mime-type (get-mime-type final-path)))
-                          (format-gemini-response 20 mime-type content))
-                        ;; File path resolved but can't be read or doesn't exist
-                        response/not-found)))))))
+          (let ((safe-path (resolve-file-path static-dir (uri-path uri))))
+            (cond
+              ((not safe-path) response/not-found)
+              ((and (file-is-directory? safe-path)
+                    (not (string-suffix? "/" (uri-path uri))))
+               (let ((redirect-target (string-append (uri-path uri) "/")))
+                 (log-message "DEBUG" "Redirecting ~a to ~a" (uri-path uri) redirect-target)
+                 (response/redirect redirect-target)))
+              (else
+               (let ((final-path (resolve-directory-index safe-path)))
+                 (let ((content (read-file-content final-path)))
+                   (if content
+                       (let ((mime-type (get-mime-type final-path)))
+                         (response/success mime-type content))
+                       response/not-found))))))))
       response/temporary-failure))
 
 ;;; Helper predicates for clean request analysis

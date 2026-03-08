@@ -95,6 +95,7 @@ TEST_EXIT=$?
 cd ../..
 
 # Display test output
+
 echo "$TEST_OUTPUT"
 
 # Check for test failures
@@ -108,6 +109,7 @@ elif [ $TEST_EXIT -eq 0 ]; then
     echo -e "${GREEN}✅ Structured acceptance tests completed${NC}"
 else
     echo -e "${YELLOW}⚠️  Structured acceptance tests had issues (expected - may need server fixes)${NC}"
+    ACCEPTANCE_FAILED=1
 fi
 
 echo
@@ -155,3 +157,12 @@ echo "  • TLS connectivity verified"
 echo "  • Basic file serving tested"
 echo "  • Error handling tested"
 echo "  • Server will be stopped automatically"
+
+# Final exit status based on ACCEPTANCE_FAILED
+if [ -n "$ACCEPTANCE_FAILED" ]; then
+    echo -e "${RED}❌ Acceptance tests reported failures${NC}"
+    exit 1
+else
+    echo -e "${GREEN}✅ All acceptance tests passed${NC}"
+    exit 0
+fi

@@ -15,7 +15,7 @@
 
 ;;; Safe operation wrapper - replaces repetitive catch patterns
 (define-syntax-rule (safe-operation body ...)
-  (catch #t (lambda () body ...) (const #f)))
+  (catch #t (lambda () (begin body ...)) (const #f)))
 
 ;;; Error handling with default fallback
 (define-syntax-rule (error-or default-value body ...)

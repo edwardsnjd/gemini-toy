@@ -12,7 +12,7 @@ test:
 clean:
 	@bash scripts/clean.sh
 
-.devenv-image: Dockerfile.dev
+.devenv-image: .env Dockerfile.dev scripts/build-devenv.sh
 	@bash scripts/build-devenv.sh
 	touch .devenv-image
 

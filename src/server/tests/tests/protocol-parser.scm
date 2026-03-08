@@ -142,9 +142,33 @@
   "30 gemini://new-location/\r\n"
   (format-gemini-response 30 "gemini://new-location/" #f))
 
+(test-equal "response/redirect function returns correct format with target"
+  "30 gemini://example.com/docs/\r\n"
+  (response/redirect "gemini://example.com/docs/"))
+
 (test-equal "bad request response format"
   "59 Bad Request\r\n"
   (format-gemini-response 59 "Bad Request" #f))
+
+(test-equal "bad request response format"
+  "59 Bad Request\r\n"
+  (format-gemini-response 59 "Bad Request" #f))
+
+(test-equal "client-cert-required response format"
+  "60 Client Certificate Required\r\n"
+  response/client-cert-required)
+
+(test-equal "cert-not-authorized response format"
+  "61 Certificate Not Authorized\r\n"
+  response/cert-not-authorized)
+
+(test-equal "cert-not-valid response format"
+  "62 Certificate Not Valid\r\n"
+  response/cert-not-valid)
+
+(test-equal "proxy-request-refused response format"
+  "52 Proxy Request Refused\r\n"
+  response/proxy-request-refused)
 
 (test-end "response-formatting")
 
