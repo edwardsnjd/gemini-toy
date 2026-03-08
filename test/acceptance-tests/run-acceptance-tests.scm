@@ -17,5 +17,6 @@
              (directory-index)
              (file-not-found)
              (malformed-requests)
-             (redirect-handling))
+             (redirect-handling)
+             (proxy-request-refused))
 (test-end "gemini-server-acceptance-tests")

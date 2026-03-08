@@ -166,6 +166,10 @@
   "62 Certificate Not Valid\r\n"
   response/cert-not-valid)
 
+(test-equal "proxy-request-refused response format"
+  "52 Proxy Request Refused\r\n"
+  response/proxy-request-refused)
+
 (test-end "response-formatting")
 
 ;;; Export for test runner

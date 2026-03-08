@@ -213,19 +213,22 @@
 
 ;;; Handler 1: Request validation with specific error responses
 (define (validate-request-handler request static-dir)
-  (and (not (validate-request request))
-       (cond
-         ((> (string-length request) 1024) response/request-too-long)
-         ((non-gemini-scheme? request) response/non-gemini-scheme)
-         (else response/bad-request))))
+  (let ((result (validate-request request)))
+    (and (not (eq? result #t))
+         (cond
+          ((eq? result 'proxy-scheme) response/proxy-request-refused)
+          ((> (string-length request) 1024) response/request-too-long)
+          ((non-gemini-scheme? request) response/non-gemini-scheme)
+          (else response/bad-request)))))
 
 ;;; Handler 2: URI parsing with error detection
 (define (parse-uri-handler request static-dir)
   (let ((uri (parse-gemini-request request)))
-    (and (or (not uri) (path-traversal-attempt? (uri-path uri)))
-         (if (non-gemini-scheme? request)
-             response/non-gemini-scheme
-             response/bad-request))))
+    (and (or (not uri) (eq? uri 'proxy-scheme) (path-traversal-attempt? (uri-path uri)))
+         (cond
+          ((eq? uri 'proxy-scheme) response/proxy-request-refused)
+          ((non-gemini-scheme? request) response/non-gemini-scheme)
+          (else response/bad-request)))))
 
 ;;; Handler 3: File serving with proper error handling
 (define (serve-file-handler request static-dir)

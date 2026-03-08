@@ -16,6 +16,7 @@
             validate-request
             trim-crlf
             valid-gemini-uri?
+            proxy-scheme-uri?
             normalize-empty-path
             response/success
             response/temporary-failure
@@ -41,13 +42,21 @@
        (not (uri-userinfo uri))
        (not (uri-fragment uri))))
 
+;;; Check if URI has a proxy scheme
+(define (proxy-scheme-uri? uri)
+  (and uri
+       (let ((scheme (uri-scheme uri)))
+         (eq? scheme 'proxy))))
+
 ;;; Parse and validate a Gemini request line
 (define (parse-gemini-request request-line)
   (safe-operation
     (let ((cleaned (trim-crlf request-line)))
-      (and-let* ((uri (and (not (string-null? cleaned)) (string->uri cleaned)))
-                 (_ (valid-gemini-uri? uri)))
-        (normalize-empty-path uri)))))
+      (and-let* ((uri (and (not (string-null? cleaned)) (string->uri cleaned))))
+        (cond
+         ((proxy-scheme-uri? uri) 'proxy-scheme)
+         ((valid-gemini-uri? uri) (normalize-empty-path uri))
+         (else #f))))))
 
 ;;; Normalize empty path to root path "/"
 (define (normalize-empty-path uri)
@@ -114,9 +123,14 @@
 
 ;;; Validate request format and constraints according to Gemini specification
 (define (validate-request request-line)
-  (and (<= (string-length request-line) 1024)
-       (not (string-null? (string-trim request-line)))
-       (or (string-suffix? "\r\n" request-line)
-           (string-suffix? "\n" request-line))
-       (parse-gemini-request request-line)
-       #t))
+  (cond
+    ((> (string-length request-line) 1024) #f)
+    ((string-null? (string-trim request-line)) #f)
+    ((not (or (string-suffix? "\r\n" request-line)
+              (string-suffix? "\n" request-line))) #f)
+    (else
+     (let ((parsed (parse-gemini-request request-line)))
+       (cond
+        ((eq? parsed 'proxy-scheme) 'proxy-scheme)
+        (parsed #t)
+        (else #f))))))
