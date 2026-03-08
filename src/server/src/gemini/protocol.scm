@@ -3,6 +3,9 @@
 ;;; 
 ;;; This module implements the core Gemini protocol parsing and response formatting
 ;;; as specified in the Gemini protocol specification (gemini://gemini.circumlunar.space/docs/specification.gmi)
+;;;
+;;; Response constants (response/success, response/temporary-failure, etc.) are defined
+;;; via the shared make-response helper for consistency.
 
 (define-module (gemini protocol)
   #:use-module (ice-9 regex)
@@ -13,6 +16,7 @@
   #:use-module (gemini utils)
   #:export (parse-gemini-request
             format-gemini-response
+            make-response
             validate-request
             trim-crlf
             valid-gemini-uri?
@@ -66,22 +70,26 @@
   (string-append (number->string status-code) " " meta "\r\n"
                  (or body "")))
 
+;;; Shared helper that produces a correctly formatted Gemini response
+(define (make-response status-code meta . body)
+  (format-gemini-response status-code meta (if (null? body) #f (car body))))
+
 ;;; Error response builder - creates properly formatted error responses
 (define (error-response code meta)
   "Build a Gemini error response with code and meta string"
   (format-gemini-response code meta #f))
 
-;;; Predefined error responses (Gemini Status Codes) - string constants
-(define response/success "20 text/gemini; charset=utf-8\r\n")
-(define response/temporary-failure (error-response 40 "Temporary Failure"))
-(define response/permanent-failure (error-response 50 "Permanent Failure"))
-(define response/client-cert-required (error-response 60 "Client Certificate Required"))
-(define response/cert-not-authorized (error-response 61 "Certificate Not Authorized"))
-(define response/cert-not-valid (error-response 62 "Certificate Not Valid"))
-(define response/request-too-long (error-response 59 "Request too long"))
-(define response/bad-request (error-response 59 "Bad Request"))
-(define response/not-found (error-response 51 "Not Found"))
-(define response/non-gemini-scheme (error-response 59 "Only gemini:// URIs supported"))
+;;; Predefined error responses (Gemini Status Codes) - defined via make-response
+(define response/success (make-response 20 "text/gemini; charset=utf-8"))
+(define response/temporary-failure (make-response 40 "Temporary Failure"))
+(define response/permanent-failure (make-response 50 "Permanent Failure"))
+(define response/client-cert-required (make-response 60 "Client Certificate Required"))
+(define response/cert-not-authorized (make-response 61 "Certificate Not Authorized"))
+(define response/cert-not-valid (make-response 62 "Certificate Not Valid"))
+(define response/request-too-long (make-response 59 "Request too long"))
+(define response/bad-request (make-response 59 "Bad Request"))
+(define response/not-found (make-response 51 "Not Found"))
+(define response/non-gemini-scheme (make-response 59 "Only gemini:// URIs supported"))
 
 ;;; Helper function for parameterized responses (redirect)
 (define (response/redirect url)
