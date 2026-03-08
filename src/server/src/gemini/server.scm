@@ -136,17 +136,64 @@
   (set-session-credentials! session credentials)
   (set-session-dh-prime-bits! session 1024)
   (set-session-priorities! session "NORMAL"))
+  ;; Request client certificate (optional)
+  ;; (set-server-session-certificate-request! session certificate-request/request) ; disabled due to missing constant)
 
 ;;; Perform TLS handshake and client handling
 (define (process-client-tls session static-dir client-addr)
-  (handshake session)
-  (log-message "DEBUG" "TLS handshake completed with ~a" client-addr)
-  (let ((port (session-record-port session)))
-    (handle-client port static-dir client-addr)
-    (close-port port))
-  (bye session close-request/rdwr))
+  (catch #t
+    (lambda ()
+      ;; Perform TLS handshake first
+      (handshake session)
+      (log-message "DEBUG" "TLS handshake completed with ~a" client-addr)
+      
+      ;; Get port AFTER successful handshake
+      (let ((port (session-record-port session)))
+        ;; Check client certificate status - this may throw if no cert provided
+        (let ((cert-status 
+               (catch #t
+                 (lambda () (peer-certificate-status session))
+                 (lambda (key . args)
+                   ;; No certificate was found - this is OK, treat as no cert
+                   (log-message "DEBUG" "No client certificate provided by ~a" client-addr)
+                   #f))))
+          (cond
+            ((or (not cert-status) (zero? cert-status))
+             ;; No client certificate provided or certificate is valid; proceed with request handling
+             (log-message "DEBUG" "Handshake done, handling client ~a" client-addr)
+             (handle-client port static-dir client-addr)
+             (close-port port)
+             (bye session close-request/rdwr))
+            ((eq? cert-status certificate-status/invalid)
+             (let ((response response/cert-not-valid))
+               (display response port)
+               (force-output port)
+               (log-message "INFO" "Client certificate not valid for ~a" client-addr)
+               (bye session close-request/rdwr)
+               (close-port port)))
+            (else
+             ;; Any other non-zero status indicates unauthorized client certificate
+             (let ((response response/cert-not-authorized))
+               (display response port)
+               (force-output port)
+               (log-message "INFO" "Client certificate not authorized for ~a" client-addr)
+               (bye session close-request/rdwr)
+               (close-port port)))))))
+    (lambda (key . args)
+      ;; Actual TLS handshake error (not certificate-related)
+      (log-message "INFO" "TLS handshake error for ~a: ~a" client-addr args)
+      (catch #t
+        (lambda ()
+          (let ((port (session-record-port session)))
+            (when port
+              (let ((response response/client-cert-required))
+                (display response port)
+                (force-output port))
+              (close-port port))))
+        (lambda (k . a) #f))
+      (bye session close-request/rdwr))))
 
-;;; Main server implementation  
+;;; Main server implementation
 (define (main args)
   (match (parse-cli-args args)
     ('help
