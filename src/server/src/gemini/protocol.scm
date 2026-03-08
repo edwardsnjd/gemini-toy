@@ -3,9 +3,6 @@
 ;;; 
 ;;; This module implements the core Gemini protocol parsing and response formatting
 ;;; as specified in the Gemini protocol specification (gemini://gemini.circumlunar.space/docs/specification.gmi)
-;;;
-;;; Response constants (response/success, response/temporary-failure, etc.) are defined
-;;; via the shared make-response helper for consistency.
 
 (define-module (gemini protocol)
   #:use-module (ice-9 regex)
@@ -16,12 +13,10 @@
   #:use-module (gemini utils)
   #:export (parse-gemini-request
             format-gemini-response
-            make-response
             validate-request
             trim-crlf
             valid-gemini-uri?
             normalize-empty-path
-            error-response
             response/success
             response/temporary-failure
             response/permanent-failure
@@ -32,7 +27,12 @@
             response/request-too-long
             response/bad-request
             response/not-found
-            response/non-gemini-scheme))
+            response/non-gemini-scheme
+            response/proxy-request-refused))
+
+;;; =====================================================================
+;;; Request Parsing
+;;; =====================================================================
 
 ;;; Check if URI meets Gemini protocol requirements
 (define (valid-gemini-uri? uri)
@@ -65,36 +65,51 @@
 (define (trim-crlf request-line)
   (string-trim-right request-line (char-set #\newline #\return)))
 
-;;; Format a Gemini response according to protocol specification  
-(define (format-gemini-response status-code meta body)
+;;; =====================================================================
+;;; Response Formatting
+;;; =====================================================================
+
+;;; Format a Gemini response according to protocol specification
+;;;
+;;; Uses rest parameter syntax (. body) to accept optional body argument.
+;;; When body is not provided or #f, only the header line is returned.
+(define (format-gemini-response status-code meta . body)
   (string-append (number->string status-code) " " meta "\r\n"
-                 (or body "")))
+                 (let ((b (and (not (null? body)) (car body))))
+                   (or b ""))))
 
-;;; Shared helper that produces a correctly formatted Gemini response
-(define (make-response status-code meta . body)
-  (format-gemini-response status-code meta (if (null? body) #f (car body))))
+;;; =====================================================================
+;;; Gemini protocol responses
+;;; =====================================================================
 
-;;; Error response builder - creates properly formatted error responses
-(define (error-response code meta)
-  "Build a Gemini error response with code and meta string"
-  (format-gemini-response code meta #f))
+;; Success (2x) - accepts MIME type as parameter
+(define (response/success mime-type . body)
+  (apply format-gemini-response 20 mime-type body))
 
-;;; Predefined error responses (Gemini Status Codes) - defined via make-response
-(define response/success (make-response 20 "text/gemini; charset=utf-8"))
-(define response/temporary-failure (make-response 40 "Temporary Failure"))
-(define response/permanent-failure (make-response 50 "Permanent Failure"))
-(define response/client-cert-required (make-response 60 "Client Certificate Required"))
-(define response/cert-not-authorized (make-response 61 "Certificate Not Authorized"))
-(define response/cert-not-valid (make-response 62 "Certificate Not Valid"))
-(define response/request-too-long (make-response 59 "Request too long"))
-(define response/bad-request (make-response 59 "Bad Request"))
-(define response/not-found (make-response 51 "Not Found"))
-(define response/non-gemini-scheme (make-response 59 "Only gemini:// URIs supported"))
+;; Redirect (3x)
+(define response/redirect (format-gemini-response 30 "Redirect"))
 
-;;; Helper function for parameterized responses (redirect)
-(define (response/redirect url)
-  "Create a redirect response to the given URL"
-  (error-response 30 url))
+;; Temporary Failure (4x)
+(define response/temporary-failure (format-gemini-response 40 "Temporary Failure"))
+
+;; Permanent Failure (5x)
+(define response/permanent-failure (format-gemini-response 50 "Permanent Failure"))
+(define response/not-found (format-gemini-response 51 "Not Found"))
+(define response/proxy-request-refused (format-gemini-response 52 "Proxy Request Refused"))
+
+;; Request errors (5x) - Request too long is 59
+(define response/request-too-long (format-gemini-response 59 "Request too long"))
+(define response/bad-request (format-gemini-response 59 "Bad Request"))
+(define response/non-gemini-scheme (format-gemini-response 59 "Only gemini:// URIs supported"))
+
+;; Client Certificate Required (6x)
+(define response/client-cert-required (format-gemini-response 60 "Client Certificate Required"))
+(define response/cert-not-authorized (format-gemini-response 61 "Certificate Not Authorized"))
+(define response/cert-not-valid (format-gemini-response 62 "Certificate Not Valid"))
+
+;;; =====================================================================
+;;; Request Validation
+;;; =====================================================================
 
 ;;; Validate request format and constraints according to Gemini specification
 (define (validate-request request-line)

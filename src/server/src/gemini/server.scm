@@ -197,7 +197,7 @@
                   (let ((content (read-file-content final-path)))
                     (if content
                         (let ((mime-type (get-mime-type final-path)))
-                          (format-gemini-response 20 mime-type content))
+                          (response/success mime-type content))
                         ;; File path resolved but can't be read or doesn't exist
                         response/not-found)))))))
       response/temporary-failure))
