@@ -142,6 +142,10 @@
   "30 gemini://new-location/\r\n"
   (format-gemini-response 30 "gemini://new-location/" #f))
 
+(test-equal "response/redirect function returns correct format with target"
+  "30 gemini://example.com/docs/\r\n"
+  (response/redirect "gemini://example.com/docs/"))
+
 (test-equal "bad request response format"
   "59 Bad Request\r\n"
   (format-gemini-response 59 "Bad Request" #f))

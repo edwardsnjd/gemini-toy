@@ -184,22 +184,21 @@
 (define (serve-file-handler request static-dir)
   (or (safe-operation
         (and-let* ((uri (parse-gemini-request request)))
-          ;; Try to resolve the path - if it fails, file doesn't exist
-          (let ((safe-path (resolve-file-path static-dir (uri-path uri)))
-                (final-path #f))
-            (if (not safe-path)
-                ;; Path resolution failed - likely file doesn't exist or outside boundary
-                response/not-found
-                ;; Path resolved successfully, check for index files
-                (begin
-                  (set! final-path (resolve-directory-index safe-path))
-                  ;; Try to read and serve the file
-                  (let ((content (read-file-content final-path)))
-                    (if content
-                        (let ((mime-type (get-mime-type final-path)))
-                          (response/success mime-type content))
-                        ;; File path resolved but can't be read or doesn't exist
-                        response/not-found)))))))
+          (let ((safe-path (resolve-file-path static-dir (uri-path uri))))
+            (cond
+              ((not safe-path) response/not-found)
+              ((and (file-is-directory? safe-path)
+                    (not (string-suffix? "/" (uri-path uri))))
+               (let ((redirect-target (string-append (uri-path uri) "/")))
+                 (log-message "DEBUG" "Redirecting ~a to ~a" (uri-path uri) redirect-target)
+                 (response/redirect redirect-target)))
+              (else
+               (let ((final-path (resolve-directory-index safe-path)))
+                 (let ((content (read-file-content final-path)))
+                   (if content
+                       (let ((mime-type (get-mime-type final-path)))
+                         (response/success mime-type content))
+                       response/not-found))))))))
       response/temporary-failure))
 
 ;;; Helper predicates for clean request analysis

@@ -87,7 +87,8 @@
   (apply format-gemini-response 20 mime-type body))
 
 ;; Redirect (3x)
-(define response/redirect (format-gemini-response 30 "Redirect"))
+(define (response/redirect target)
+  (format-gemini-response 30 target))
 
 ;; Temporary Failure (4x)
 (define response/temporary-failure (format-gemini-response 40 "Temporary Failure"))
