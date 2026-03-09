@@ -1,88 +1,215 @@
-## 1. Project Setup
+# Implementation Plan: Iterative TDD Approach
 
-- [ ] 1.1 Create gemini-client.scm main entry point
-- [ ] 1.2 Create lib/ directory for modules
-- [ ] 1.3 Set up module system and imports (ice-9, web client)
-- [ ] 1.4 Add shebang and executable permissions
+## Guiding Principles
 
-## 2. CLI Argument Parsing
+1. **Always runnable** - Every iteration produces a working CLI, even if it does minimal work
+2. **Tests always passing** - Each increment adds tests before implementation
+3. **Small chunks** - Each task should be completable in a single session
+4. **Feature-based** - Group by capability, not by technical layer
 
-- [ ] 2.1 Parse command-line arguments using (ice-9 getopt-long)
-- [ ] 2.2 Support positional URL argument
-- [ ] 2.3 Add -k/--insecure flag for TLS verification bypass
-- [ ] 2.4 Add --help flag with usage information
-- [ ] 2.5 Validate URL is gemini:// scheme
+---
 
-## 3. Network Connection
+## Iteration 1: CLI Skeleton
 
-- [ ] 3.1 Extract host and port from gemini:// URL
-- [ ] 3.2 Establish TCP connection to host:1965
-- [ ] 3.3 Set up TLS connection using (web client)
-- [ ] 3.4 Implement TLS with verification (default)
-- [ ] 3.5 Implement TLS without verification (--insecure flag)
-- [ ] 3.6 Add connection timeout handling (30 seconds)
+**Goal:** Get a runnable CLI that parses arguments and shows help
 
-## 4. Gemini Protocol - Request
+### Tasks
 
-- [ ] 4.1 Construct Gemini request line (URL + CRLF)
-- [ ] 4.2 Send request over connection
-- [ ] 4.3 Handle URL encoding for queries
+- [ ] 1.1 Create gemini-client.scm with main entry point
+- [ ] 1.2 Implement --help flag that exits cleanly
+- [ ] 1.3 Add shebang and executable permissions
+- [ ] 1.4 Verify `gemini-client --help` works
 
-## 5. Gemini Protocol - Response Parsing
+**Tests:**
+- `--help` displays usage and exits with 0
+- Missing URL shows error message and exits with non-zero
 
-- [ ] 5.1 Read response status line
-- [ ] 5.2 Parse status code (2 digits)
-- [ ] 5.3 Parse meta field (error message or headers)
-- [ ] 5.4 Handle success (20) - read response body
-- [ ] 5.5 Handle input required (10) - prompt for input
-- [ ] 5.6 Handle redirect (30-31) - parse Location header
-- [ ] 5.7 Handle client error (40) - display error
-- [ ] 5.8 Handle server error (50) - display error
-- [ ] 5.9 Implement single-level redirect following
+**Verification:** `./gemini-client --help` shows usage message
 
-## 6. Content Display
+---
 
-- [ ] 6.1 Parse Content-Type header
-- [ ] 6.2 Display text/plain content as-is
-- [ ] 6.3 Render text/gemini markup (headings, links)
-- [ ] 6.4 Show placeholder for unsupported content types
-- [ ] 6.5 Handle binary content gracefully
+## Iteration 2: URL Parsing
 
-## 7. Error Handling
+**Goal:** Extract components from gemini:// URLs
 
-- [ ] 7.1 Handle connection failures (host unreachable, timeout)
-- [ ] 7.2 Handle TLS certificate errors
-- [ ] 7.3 Handle malformed responses from server
-- [ ] 7.4 Display user-friendly error messages
+### Tasks
 
-## 8. Testing
+- [ ] 2.1 Write unit tests for URL parsing (host, port, path)
+- [ ] 2.2 Implement URL parsing module
+- [ ] 2.3 Validate gemini:// scheme, reject others
+- [ ] 2.4 Wire URL parsing into CLI, print parsed URL and exit
 
-### Unit Tests
-- [ ] 8.1 Set up Guile test framework (srfi-64 or similar)
-- [ ] 8.2 Write unit tests for URL parsing
-- [ ] 8.3 Write unit tests for request line construction
-- [ ] 8.4 Write unit tests for status code parsing
-- [ ] 8.5 Write unit tests for Content-Type parsing
+**Tests:**
+- Valid gemini:// URLs parse correctly
+- Invalid schemes rejected with error
+- Default port 1965 assumed
 
-### Integration Tests
-- [ ] 8.6 Test with local gemini-server
-- [ ] 8.7 Test with public gemini:// URLs
-- [ ] 8.8 Test --insecure flag with self-signed certs
-- [ ] 8.9 Test redirect following (status 31)
-- [ ] 8.10 Test error handling (invalid URL, unreachable host)
-- [ ] 8.11 Test URL encoding with special characters
+**Verification:** `./gemini-client gemini://example.com/foo` prints parsed components
 
-### Manual Tests
-- [ ] 8.12 Test status 10 input required (if local server supports)
-- [ ] 8.13 Test all status codes: 10, 20, 30, 31, 40, 41, 50, 51
-- [ ] 8.14 Test text/gemini markup rendering
-- [ ] 8.15 Test unsupported content type display
+---
 
-### End-to-End Tests (using gemini-server)
-- [ ] 8.16 Create test fixtures in server (sample text/plain, text/gemini pages)
-- [ ] 8.17 Start local gemini-server with test fixtures
-- [ ] 8.18 Run client against local server, verify text/plain output matches fixture
-- [ ] 8.19 Run client, verify text/gemini markup renders correctly
-- [ ] 8.20 Configure server to return redirect (31), verify client follows
-- [ ] 8.21 Configure server to return 40/50 errors, verify client displays error
-- [ ] 8.22 Verify end-to-end test script captures all output for CI/CD
+## Iteration 3: Fibers Infrastructure
+
+**Goal:** Set up fibers runtime with channels, even before networking works
+
+### Tasks
+
+- [ ] 3.1 Add fibers dependency to project
+- [ ] 3.2 Write tests for channel communication (put/get message)
+- [ ] 3.3 Implement fibers runtime in CLI entry point
+- [ ] 3.4 Create request and response channels
+- [ ] 3.5 Spawn a trivial "echo" fiber that puts messages back on response channel
+
+**Tests:**
+- Channel creation works
+- Messages round-trip through fiber
+
+**Verification:** Client runs without error (even if it doesn't fetch anything yet)
+
+---
+
+## Iteration 4: Network Worker Fiber
+
+**Goal:** Fiber that can connect to a server and send a request
+
+### Tasks
+
+- [ ] 4.1 Write integration test that starts a simple test server
+- [ ] 4.2 Implement TCP connection in network worker fiber
+- [ ] 4.3 Handle connection errors gracefully
+- [ ] 4.4 Add --insecure flag for TLS (implemented as no-op for now)
+- [ ] 4.5 Main fiber sends URL on request channel, network worker connects and returns raw bytes
+
+**Tests:**
+- Connection to localhost:1965 succeeds (or fails gracefully)
+- Timeout handling works
+
+**Verification:** Run against local gemini-server, see connection attempt
+
+---
+
+## Iteration 5: TLS Support
+
+**Goal:** Add TLS encryption to network connections
+
+### Tasks
+
+- [ ] 5.1 Write test for TLS connection (or mock)
+- [ ] 5.2 Implement TLS wrapper using (web client)
+- [ ] 5.3 Implement --insecure flag to skip verification
+- [ ] 5.4 Add timeout to TLS handshake
+
+**Tests:**
+- TLS connection to gemini://example.com works
+- --insecure bypasses certificate verification
+
+**Verification:** `gemini-client gemini://gemini.capsuleaudio.com` fetches page
+
+---
+
+## Iteration 6: Gemini Protocol - Requests
+
+**Goal:** Send valid Gemini protocol requests
+
+### Tasks
+
+- [ ] 6.1 Write tests for request line construction
+- [ ] 6.2 Implement Gemini request format (URL + CRLF)
+- [ ] 6.3 Handle URL encoding for query strings
+- [ ] 6.4 Add request timeout
+
+**Tests:**
+- Request line matches Gemini spec
+- Query strings encoded correctly
+
+**Verification:** Use netcat to observe raw request from client
+
+---
+
+## Iteration 7: Gemini Protocol - Response Parsing
+
+**Goal:** Parse status line and headers from server
+
+### Tasks
+
+- [ ] 7.1 Write tests for status line parsing (2-digit code + meta)
+- [ ] 7.2 Implement status code parser
+- [ ] 7.3 Parse headers (at minimum: Content-Type, Location)
+- [ ] 7.4 Handle all major status codes (10, 20, 30, 40, 50)
+
+**Tests:**
+- Valid status lines parsed correctly
+- Unknown status codes handled gracefully
+- Headers extracted correctly
+
+**Verification:** Print parsed status and headers to stdout
+
+---
+
+## Iteration 8: Response Body & Redirects
+
+**Goal:** Read response body and follow redirects
+
+### Tasks
+
+- [ ] 8.1 Write tests for body reading
+- [ ] 8.2 Implement body reading (stream to stdout)
+- [ ] 8.3 Implement single redirect follow (status 31)
+- [ ] 8.4 Limit redirect depth to prevent loops
+
+**Tests:**
+- Body content output to stdout
+- Redirects followed automatically
+- Redirect loop prevention works
+
+**Verification:** Test against server that returns redirects
+
+---
+
+## Iteration 9: Content Rendering
+
+**Goal:** Format content based on Content-Type
+
+### Tasks
+
+- [ ] 9.1 Write tests for Content-Type parsing
+- [ ] 9.2 Render text/plain as-is
+- [ ] 9.3 Render text/gemini with basic formatting (headings, links as URLs)
+- [ ] 9.4 Show placeholder for unsupported types
+- [ ] 9.5 Handle binary content gracefully
+
+**Tests:**
+- text/plain displays raw
+- text/gemini links shown as URLs
+- Unsupported types show placeholder
+
+**Verification:** Test against various content types
+
+---
+
+## Iteration 10: Error Handling Polish
+
+**Goal:** Robust error handling for production use
+
+### Tasks
+
+- [ ] 10.1 Write tests for error scenarios
+- [ ] 10.2 Improve error messages (user-friendly, not debuggy)
+- [ ] 10.3 Proper exit codes (0 success, 1 client error, 2 server error, 3 network error)
+- [ ] 10.4 Resource cleanup on exit
+
+**Tests:**
+- All error cases have appropriate messages
+- Exit codes are correct
+
+**Verification:** Test various error scenarios
+
+---
+
+## Future Iterations (Not in Scope)
+
+- TUI mode with keyboard navigation
+- History/back navigation
+- Input handling for status 10
+- Image/media display
+- Caching
