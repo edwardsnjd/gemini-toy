@@ -15,10 +15,10 @@
 
 ### Tasks
 
-- [ ] 1.1 Create gemini-client.scm with main entry point
-- [ ] 1.2 Implement --help flag that exits cleanly
-- [ ] 1.3 Add shebang and executable permissions
-- [ ] 1.4 Verify `gemini-client --help` works
+- [x] 1.1 Create gemini-client.scm with main entry point
+- [x] 1.2 Implement --help flag that exits cleanly
+- [x] 1.3 Add shebang and executable permissions
+- [x] 1.4 Verify `gemini-client --help` works
 
 **Tests:**
 - `--help` displays usage and exits with 0
