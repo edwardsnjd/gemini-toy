@@ -14,7 +14,8 @@ RUN apt-get install --yes \
    nodejs \
    npm \
    guile-3.0 \
-   guile-gnutls
+   guile-gnutls \
+   guile-fibers
 ENV DEBIAN_FRONTEND=
 
 RUN npm install -g @fission-ai/openspec@latest

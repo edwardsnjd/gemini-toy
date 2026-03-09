@@ -56,11 +56,11 @@
 
 ### Tasks
 
-- [ ] 3.1 Add fibers dependency to project
-- [ ] 3.2 Write tests for channel communication (put/get message)
-- [ ] 3.3 Implement fibers runtime in CLI entry point
-- [ ] 3.4 Create request and response channels
-- [ ] 3.5 Spawn a trivial "echo" fiber that puts messages back on response channel
+- [x] 3.1 Add fibers dependency to project
+- [x] 3.2 Write tests for channel communication (put/get message)
+- [x] 3.3 Implement fibers runtime in CLI entry point
+- [x] 3.4 Create request and response channels
+- [x] 3.5 Spawn a trivial "echo" fiber that puts messages back on response channel
 
 **Tests:**
 - Channel creation works

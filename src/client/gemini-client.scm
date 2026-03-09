@@ -19,6 +19,9 @@
   #:use-module (ice-9 format)
   #:use-module (srfi srfi-1)
   #:use-module (client url)
+  #:use-module (fibers)
+  #:use-module (fibers channels)
+
   #:export (main parse-cli-args))
 
 ;;; Command line option specification
@@ -90,6 +93,19 @@
     (lambda () (parse-cli-args-thunk args))
     parse-cli-args-handler))
 
+;;; Run echo fiber demo
+(define (run-echo-fiber url)
+  (run-fibers
+    (lambda ()
+      (let* ((request-ch (make-channel))
+             (response-ch (make-channel)))
+        (spawn-fiber (lambda ()
+                 (let ((msg (get-message request-ch)))
+                   (put-message response-ch msg))))
+        (put-message request-ch url)
+        (let ((echo (get-message response-ch)))
+          (format #t "Echoed back: ~a~%" echo))))))
+
 ;;; Main entry point
 (define (main args)
   (let ((result (parse-cli-args args)))
@@ -105,7 +121,8 @@
          (format #t "Parsed URL - host: ~a, port: ~a, path: ~a~%"
                  (list-ref parsed 0)
                  (list-ref parsed 1)
-                 (list-ref parsed 2)))))))
+                 (list-ref parsed 2))
+         (run-echo-fiber url))))))
 
 ;;; When run as script
 (when (and (batch-mode?)
