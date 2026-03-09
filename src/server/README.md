@@ -9,16 +9,16 @@ The server is designed with a modular architecture, separating concerns into dis
 ```
 server/
 ├── src/
-│   └── gemini/           # Core server modules
-│       ├── server.scm    # Main entry point and socket handling
-│       ├── protocol.scm  # Gemini protocol parsing and formatting
+│   └── gemini/               # Core server modules
+│       ├── server.scm        # Main entry point and socket handling
+│       ├── protocol.scm      # Gemini protocol parsing and formatting
 │       ├── file-handler.scm  # File system operations and content serving
 │       ├── tls-config.scm    # TLS/SSL certificate management
 │       └── mime-types.scm    # MIME type detection
 ├── tests/
-│   └── tests/            # Unit test modules
-├── certs/                # TLS certificates directory
-└── run-unit-tests.scm    # Test runner
+│   ├── run-unit-tests.scm    # Test runner
+│   └── tests/                # Unit test modules
+└── certs/                    # TLS certificates directory
 ```
 
 ## Module Descriptions
