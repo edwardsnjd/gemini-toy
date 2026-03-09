@@ -34,10 +34,12 @@
 
 ### Tasks
 
-- [ ] 2.1 Write unit tests for URL parsing (host, port, path)
-- [ ] 2.2 Implement URL parsing module
-- [ ] 2.3 Validate gemini:// scheme, reject others
-- [ ] 2.4 Wire URL parsing into CLI, print parsed URL and exit
+- [x] 2.1 Write unit tests for URL parsing (host, port, path)
+- [x] 2.2 Implement URL parsing module
+- [x] 2.3 Validate gemini:// scheme, reject others
+- [x] 2.4 Wire URL parsing into CLI, print parsed URL and exit
+- [x] 2.5 Add client test runner script (src/client/tests/run-unit-tests.scm)
+- [x] 2.6 Update scripts/run-unit-tests.sh to also run client tests
 
 **Tests:**
 - Valid gemini:// URLs parse correctly

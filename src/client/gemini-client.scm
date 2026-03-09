@@ -1,6 +1,16 @@
 #!/usr/bin/env guile
 !#
 
+;; Ensure repository root is on load path for custom modules
+(eval-when (compile load eval)
+  (define (script-dir)
+    (let* ((path (car (command-line)))
+           (parts (string-split path #\/))
+           (dir-parts (reverse (cdr (reverse parts))))
+           (dir (string-join dir-parts "/")))
+      dir))
+  (add-to-load-path (string-append (script-dir) "/..")))
+
 ;;; Gemini Client
 ;;; A command-line client for browsing Gemini sites
 
@@ -8,6 +18,7 @@
   #:use-module (ice-9 getopt-long)
   #:use-module (ice-9 format)
   #:use-module (srfi srfi-1)
+  #:use-module (client url)
   #:export (main parse-cli-args))
 
 ;;; Command line option specification
@@ -44,10 +55,10 @@
   (cond
     ((option-ref options 'help #f)
      (display-usage (current-output-port))
-     (exit 0))
+     (list 'help))
     ((option-ref options 'version #f)
      (display-version (current-output-port))
-     (exit 0))
+     (list 'version))
     (else
      (let ((positional (option-ref options '() '())))
        (if (null? positional)
@@ -82,8 +93,19 @@
 ;;; Main entry point
 (define (main args)
   (let ((result (parse-cli-args args)))
-    (format #t "URL: ~a~%" (car result))
-    (format #t "Insecure: ~a~%" (cadr result))))
+    (cond
+      ((eq? (car result) 'help) (exit 0))
+      ((eq? (car result) 'version) (exit 0))
+      (else
+       (let* ((url (car result))
+              (insecure? (cadr result))
+              (parsed (parse-url url)))
+         (format #t "URL: ~a~%" url)
+         (format #t "Insecure: ~a~%" insecure?)
+         (format #t "Parsed URL - host: ~a, port: ~a, path: ~a~%"
+                 (list-ref parsed 0)
+                 (list-ref parsed 1)
+                 (list-ref parsed 2)))))))
 
 ;;; When run as script
 (when (and (batch-mode?)
