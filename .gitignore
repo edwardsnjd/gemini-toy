@@ -30,3 +30,6 @@ static/
 # Allow passing env vars to devenv
 .env
 .ck/
+
+# Certs
+src/server/certs/
