@@ -41,5 +41,33 @@ if echo "$OUTPUT" | grep -q "# of unexpected errors: [1-9]"; then
 fi
 
 echo
-echo "✅ Unit tests completed!"
+echo "✅ Server unit tests completed!"
+
+# Run client unit tests
+
+echo
+
+echo "🧪 Running Gemini Client Unit Tests..."
+echo "========================================"
+cd ../client
+OUTPUT_CLIENT=$(GUILE_LOAD_PATH=src:tests guile tests/run-unit-tests.scm 2>/dev/null)
+EXIT_CODE_CLIENT=$?
+echo "$OUTPUT_CLIENT"
+
+# Check for unexpected failures in client output
+if echo "$OUTPUT_CLIENT" | grep -q "# of unexpected failures: [1-9]"; then
+    echo
+    echo "❌ Client unit tests FAILED"
+    exit 1
+fi
+
+# Check for test errors in client output
+if echo "$OUTPUT_CLIENT" | grep -q "# of unexpected errors: [1-9]"; then
+    echo
+    echo "❌ Client unit tests FAILED"
+    exit 1
+fi
+
+echo
+echo "✅ All unit tests completed!"
 exit 0

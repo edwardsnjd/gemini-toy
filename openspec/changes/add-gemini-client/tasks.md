@@ -15,10 +15,10 @@
 
 ### Tasks
 
-- [ ] 1.1 Create gemini-client.scm with main entry point
-- [ ] 1.2 Implement --help flag that exits cleanly
-- [ ] 1.3 Add shebang and executable permissions
-- [ ] 1.4 Verify `gemini-client --help` works
+- [x] 1.1 Create gemini-client.scm with main entry point
+- [x] 1.2 Implement --help flag that exits cleanly
+- [x] 1.3 Add shebang and executable permissions
+- [x] 1.4 Verify `gemini-client --help` works
 
 **Tests:**
 - `--help` displays usage and exits with 0
@@ -34,10 +34,12 @@
 
 ### Tasks
 
-- [ ] 2.1 Write unit tests for URL parsing (host, port, path)
-- [ ] 2.2 Implement URL parsing module
-- [ ] 2.3 Validate gemini:// scheme, reject others
-- [ ] 2.4 Wire URL parsing into CLI, print parsed URL and exit
+- [x] 2.1 Write unit tests for URL parsing (host, port, path)
+- [x] 2.2 Implement URL parsing module
+- [x] 2.3 Validate gemini:// scheme, reject others
+- [x] 2.4 Wire URL parsing into CLI, print parsed URL and exit
+- [x] 2.5 Add client test runner script (src/client/tests/run-unit-tests.scm)
+- [x] 2.6 Update scripts/run-unit-tests.sh to also run client tests
 
 **Tests:**
 - Valid gemini:// URLs parse correctly
@@ -54,11 +56,11 @@
 
 ### Tasks
 
-- [ ] 3.1 Add fibers dependency to project
-- [ ] 3.2 Write tests for channel communication (put/get message)
-- [ ] 3.3 Implement fibers runtime in CLI entry point
-- [ ] 3.4 Create request and response channels
-- [ ] 3.5 Spawn a trivial "echo" fiber that puts messages back on response channel
+- [x] 3.1 Add fibers dependency to project
+- [x] 3.2 Write tests for channel communication (put/get message)
+- [x] 3.3 Implement fibers runtime in CLI entry point
+- [x] 3.4 Create request and response channels
+- [x] 3.5 Spawn a trivial "echo" fiber that puts messages back on response channel
 
 **Tests:**
 - Channel creation works
